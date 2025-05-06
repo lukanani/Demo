@@ -1,3 +1,60 @@
+
+import os
+import base64
+import pdfplumber
+from PIL import Image
+from io import BytesIO
+from langchain.schema import HumanMessage
+from ssrai import SSRAIClient
+
+def extract_text_from_pdf(pdf_path, llm, output_folder="pdf_images"):
+    os.makedirs(output_folder, exist_ok=True)
+    extract_list = []
+
+    with pdfplumber.open(pdf_path) as pdf:
+        for i, page in enumerate(pdf.pages):
+            print(f"\n--- Processing Page {i + 1} ---\n")
+
+            # Convert page to image
+            page_image = page.to_image(resolution=300)
+            image_path = os.path.join(output_folder, f"page_{i+1}.png")
+            page_image.save(image_path, format="PNG")
+
+            with open(image_path, "rb") as image_file:
+                image_data = base64.b64encode(image_file.read()).decode("utf-8")
+
+            message = HumanMessage(
+                content=[
+                    {
+                        "type": "text",
+                        "text": """You are an AI assistant that extracts data from documents and returns them as structured markdown.
+                        
+- Go through the image of the PDF page.
+- Extract details exactly as seen.
+- Preserve tables, styles, bold text, and structure.
+- Add short inline descriptions starting with `image_description:`, `table_description:`, etc.
+- Return in markdown format.
+- Do not use code blocks."""
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{image_data}"
+                        }
+                    }
+                ]
+            )
+
+            response = llm.invoke([message])
+            print("Response:", response.content)
+            extract_list.append(response.content)
+
+    return extract_list
+
+
+
+
+
 import pandas as pd
 import ast
 from datasets import Dataset
