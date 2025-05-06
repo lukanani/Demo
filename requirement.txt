@@ -1,0 +1,68 @@
+import pandas as pd
+import ast
+from datasets import Dataset
+from ragas.metrics import faithfulness, answer_correctness, answer_relevancy
+from ragas import evaluate
+
+# === Preprocessing: Extract pageContentExtract ===
+def extract_pageContentExtract(meta_val):
+    try:
+        if pd.isna(meta_val):
+            return ""
+        if isinstance(meta_val, str):
+            parsed = ast.literal_eval(meta_val)
+        elif isinstance(meta_val, list):
+            parsed = meta_val
+        else:
+            return ""
+
+        if isinstance(parsed, list) and len(parsed) > 0 and isinstance(parsed[0], dict):
+            return parsed[0].get("pageContent Extract", "")
+        return ""
+    except Exception as e:
+        print(f"Failed to parse: {meta_val}\nError: {e}")
+        return ""
+
+# === Prepare Dataset for RAGAS ===
+def prepare_dataset(df):
+    records = {
+        "question": df["user_query"].astype(str),
+        "answer": df["bot_response"].astype(str),
+        "contexts": df["context"].astype(str).apply(lambda x: [x]),  # list of one context string
+    }
+    return Dataset.from_dict(records)
+
+# === Main RAGAS Evaluation Pipeline ===
+def run_ragas_evaluation(input_excel_path, output_excel_path):
+    # Load Excel
+    df = pd.read_excel(input_excel_path)
+
+    # Extract context using your custom function
+    df["context"] = df["source_context"].apply(extract_pageContentExtract)
+
+    # Fill NA to avoid crashes
+    df.fillna("", inplace=True)
+
+    # Prepare for RAGAS
+    ragas_dataset = prepare_dataset(df)
+
+    # Run evaluation
+    results = evaluate(
+        ragas_dataset,
+        metrics=[faithfulness, answer_correctness, answer_relevancy]
+    )
+
+    # Add scores (converted to percentages)
+    df["Faithfulness (%)"] = [round(score * 100, 2) for score in results["faithfulness"]]
+    df["Answer Correctness (%)"] = [round(score * 100, 2) for score in results["answer_correctness"]]
+    df["Answer Relevancy (%)"] = [round(score * 100, 2) for score in results["answer_relevancy"]]
+
+    # Save output
+    df.to_excel(output_excel_path, index=False)
+    print(f"✅ Evaluation complete! Output saved to: {output_excel_path}")
+
+# === Execute Script ===
+if __name__ == "__main__":
+    input_excel = r"\\mfgdcu02\p872643\Desktop\ssgenai_evalution\Audit assistance questions.xlsx"
+    output_excel = "evaluation_output_ragas.xlsx"
+    run_ragas_evaluation(input_excel, output_excel)
