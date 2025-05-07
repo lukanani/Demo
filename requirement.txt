@@ -1,4 +1,109 @@
 
+# Objective:
+You are an AI assistant that extracts data from document images and returns it in structured markdown format, preserving the layout and formatting exactly as shown in the image.
+
+# Instructions:
+
+1. You are provided with images of PDF pages. Go through **each image carefully** and extract **all visible information**.
+
+2. Format the extracted information in markdown style, **replicating the visual layout of the PDF** (text structure, tables, images, bullet points).
+
+3. For **images, tables, and screenshots**, preserve:
+   - Borders
+   - Cell alignment
+   - Font styles (bold, italics if applicable)
+   - Highlighted or bold text
+   - If present, add an inline description:
+     - Use `image_description:` for images
+     - Use `table_description:` for tables
+     - Use `screenshot_description:` for screenshots
+
+4. Store all extracted images in a folder named `images/` in `.png` format, and insert them in markdown as:
+
+5. **Do not include any footers, headers, or page numbers** from the PDF.
+
+6. **Extract the text exactly** as it appears in the image, including punctuation, symbols, and formatting.
+
+7. If the document contains **errors, warnings, or stack traces**, skip them unless explicitly asked to extract them.
+
+8. **Important Markdown Formatting Rules**:
+- Never use `#`, `##`, `###`, or `**bold**` for headings unless the line is a clear section title (e.g., appears top-centered with larger font or boxed).
+- If the content is a **list of similar items** (e.g., report names, fund types, field labels), always format them as bullet points using `-`, even if they are bold or appear like headings.
+- Example:
+  ```
+  - Base Equivalent Cash Statement
+  - Earned Income by Asset ID
+  ```
+
+9. If two or more items appear one after another (e.g., 17 report names), even across pages, **treat them as a continuous bullet list**.
+
+10. Do not return the markdown content inside code blocks (no triple backticks).
+
+# Output:
+A structured markdown representation of all PDF content with:
+- Correct visual layout
+- Tables, images, and screenshots with descriptions
+- Lists as bullet points
+- No extra formatting like headings unless visually justified
+
+
+
+
+
+Download 17 MYSS excel reports and run MYSS recon macro for external and internal funds.
+
+Use the same method to create template and download 17 MYSS excel reports as below.
+
+Holdings Alpha
+
+Net Asset Value
+
+Dividend Payable
+
+Dividend Receivable
+
+FX Pending Forward Activity
+
+FX Pending Spot Activity
+
+Interest Payable
+
+Interest Receivable
+
+MBS Interest Payable
+
+MBS Interest Receivable
+
+Open Trades
+
+Tax Expense Payable
+
+Tax Reclaim Receivable
+
+Dividend Income Summary
+
+Realized Gain Loss
+
+Processing Page 8
+
+c:\venv\Lib\site-packages\ssrai\utils\request utils.py:15: PydanticDeprecatedSince20: The `dict' method is depre
+
+session.proxies = proxy.dict()
+
+c:\venv\Lib\site-packages\urllib3\connectionpool.py:1099: InsecureRequestWarning: Unverified HTTPS request is b
+
+warnings.warn(
+
+Response: **Base Equivalent Cash Statement**
+
+**Earned Income by Asset ID**
+
+
+
+
+
+
+
 import os
 import base64
 import pdfplumber
