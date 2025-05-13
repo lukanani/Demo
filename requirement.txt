@@ -1,3 +1,23 @@
+import json
+import pandas as pd
+
+# Step 1: Load JSON file
+with open('your_file.json', 'r') as file:
+    data = json.load(file)
+
+# Step 2: Normalize (flatten) the JSON data
+df = pd.json_normalize(data, sep='_')
+
+# Step 3: Save to Excel
+df.to_excel('converted_output.xlsx', index=False)
+
+print("Conversion complete. File saved as 'converted_output.xlsx'")
+
+
+
+
+
+
 import os
 import time
 import json
