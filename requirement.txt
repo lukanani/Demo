@@ -1,3 +1,10 @@
+Hi Chandreshkumar Dedani, Vivek. The results from the previous run were good. I have now changed the dataset to include 3 diverse procedural questions. Please use this dataset for your training, and also use the parameters: context length = 1024 and epochs = 4."
+
+
+
+
+
+
 import pandas as pd
 
 # Load your Excel or CSV file
