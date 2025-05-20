@@ -1,3 +1,75 @@
+LLaMA-3.1-8B-Instruct Fine-Tuning Pipeline (PEFT + MLflow)
+Environment Setup:
+Import all required libraries (transformers, datasets, torch, mlflow, etc.).
+
+Tokenizer & Model Loading:
+Load the tokenizer and quantized LLaMA model. Set pad token as EOS and padding side as "left" for causal LM.
+
+Dataset Loading:
+Read the question-answer dataset from a CSV file. Drop nulls, shuffle, and retain relevant columns.
+
+Prompt Formatting:
+Format data into structured "chat" format (system, user, assistant roles) using the tokenizer’s chat template.
+
+Token Count Analysis:
+Calculate and visualize token lengths to ensure most samples are under 1024 tokens (model limit).
+
+Train/Validation Split:
+Use train_test_split() to divide data into training and validation sets for evaluation.
+
+Dataset Conversion:
+Convert Pandas DataFrames to HuggingFace DatasetDict for training compatibility.
+
+PEFT (LoRA) Configuration:
+Define LoraConfig to fine-tune only a small subset of layers efficiently using LoRA adapters.
+
+Training Configuration:
+Set hyperparameters like batch size, epochs, learning rate, warmup ratio, and enable MLflow tracking.
+
+Model Training:
+Fine-tune the model using SFTTrainer with chat-formatted inputs. Log metrics and artifacts via MLflow.
+
+Merge Adapters:
+After training, merge LoRA adapters with the base model to create a fully functional fine-tuned model.
+
+Model Logging:
+Log the merged model to MLflow using transformers.log_model() for future deployment.
+
+Model Registration:
+Register the model version in Databricks MLflow Registry with a custom name.
+
+Artifact Copy (Optional):
+Download and copy model artifacts from MLflow run to a Unified Catalog directory.
+
+Inference:
+Load the logged model and run inference using mlflow_model.predict() with system-user prompts.
+
+Let me know if you want this exported to a .md or .pdf file.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ChatGPT can make mistakes. Check important info. See Cookie Preferences.
+
+
+
+
+
+
+
+
 Hi Chandreshkumar Dedani, Vivek. The results from the previous run were good. I have now changed the dataset to include 3 diverse procedural questions. Please use this dataset for your training, and also use the parameters: context length = 1024 and epochs = 4."
 
 
