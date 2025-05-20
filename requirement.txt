@@ -1,3 +1,153 @@
+### LLaMA-3.1-8B-Instruct Fine-Tuning Pipeline (PEFT + MLflow)
+
+---
+
+#### 1. Environment Initialization
+
+* **Purpose**: Set up the Python environment and load libraries.
+* **Tools**: `transformers`, `datasets`, `torch`, `pandas`, `mlflow`, `seaborn`, `matplotlib`
+* **Action**: Import required packages, set a global random seed (`SEED = 42`), and configure plotting.
+
+---
+
+#### 2. Load Tokenizer and Model
+
+* **Purpose**: Initialize tokenizer and quantized base model for fine-tuning.
+* **Tools**: `AutoTokenizer`, `AutoModelForCausalLM`
+* **Action**:
+
+  * Load tokenizer from the base model path.
+  * Set `pad_token` = `eos_token`, padding side = "left" (required for causal LMs).
+  * Load the quantized model (e.g., 4-bit with `BitsAndBytesConfig` if required).
+
+---
+
+#### 3. Dataset Preparation
+
+* **Purpose**: Read, clean, and prepare data for fine-tuning.
+* **Tools**: `pandas`
+* **Action**:
+
+  * Load QA dataset from CSV.
+  * Keep only `Question` and `Answer` columns.
+  * Drop missing values and shuffle the rows.
+
+---
+
+#### 4. Format Prompts for Chat
+
+* **Purpose**: Convert QA rows into structured multi-turn chat format for LLM training.
+* **Tools**: `tokenizer.apply_chat_template()`
+* **Action**:
+
+  * Construct `[system → user → assistant]` style chat messages.
+  * Generate text prompts for training using tokenizer templates.
+
+---
+
+#### 5. Analyze Token Length
+
+* **Purpose**: Ensure inputs fit within model's `max_seq_length` (1024 tokens).
+* **Tools**: `tokenizer`, `matplotlib`, `PercentFormatter`
+* **Action**:
+
+  * Tokenize each example to count tokens.
+  * Plot histograms to visualize token distribution.
+
+---
+
+#### 6. Split Dataset
+
+* **Purpose**: Create training, validation, and test sets.
+* **Tools**: `train_test_split` from `sklearn`
+* **Action**:
+
+  * Split into 80% train and 20% validation sets.
+  * Convert them into HuggingFace `Dataset` objects using `Dataset.from_pandas()`.
+
+---
+
+#### 7. Configure PEFT (LoRA)
+
+* **Purpose**: Reduce memory cost using parameter-efficient fine-tuning.
+* **Tools**: `peft.LoraConfig`, `get_peft_model()`
+* **Action**:
+
+  * Apply LoRA only on linear layers.
+  * Configure rank (`r`), alpha, dropout, and target modules.
+  * Prepare model for training.
+
+---
+
+#### 8. Define Training Configuration
+
+* **Purpose**: Set training hyperparameters and logging behavior.
+* **Tools**: `trl.SFTConfig`
+* **Key Settings**:
+
+  * `max_seq_length = 1024`
+  * `batch_size = 2`
+  * `gradient_accumulation = 4`
+  * `learning_rate = 1e-4`
+  * `eval_steps = 0.2`, `save_steps = 0.2`
+  * `fp16 = True`, `lr_scheduler = cosine`
+  * `report_to = "mlflow"`
+
+---
+
+#### 9. Train Model
+
+* **Purpose**: Fine-tune the base model with LoRA layers.
+* **Tools**: `SFTTrainer`
+* **Action**:
+
+  * Train on the `train` set, evaluate on `validation`.
+  * Save the model and tokenizer to `OUTPUT_DIR`.
+  * Log everything to MLflow inside `with mlflow.start_run()`.
+
+---
+
+#### 10. Merge LoRA with Base Model
+
+* **Purpose**: Convert adapter-based model into a standalone fine-tuned model.
+* **Tools**: `PeftModel`, `merge_and_unload()`
+* **Action**:
+
+  * Load trained LoRA model.
+  * Merge adapters into base model to remove dependency on LoRA.
+
+---
+
+#### 11. Register and Log Model with MLflow
+
+* **Purpose**: Store, version, and serve model in production.
+* **Tools**: `mlflow.transformers.log_model()`, `mlflow.register_model()`
+* **Action**:
+
+  * Log the `pipeline("text-generation")` model.
+  * Register it to Databricks model registry.
+
+---
+
+#### 12. Copy Artifacts to UC Volume (Optional)
+
+* **Purpose**: Store model artifacts in a Unified Catalog (UC) for sharing or backup.
+* **Tools**: `mlflow.tracking.MlflowClient()`
+* **Action**:
+
+  * Download all model artifacts and copy to desired UC directory path.
+
+---
+
+#### 13. Inference
+
+* **Purpose**: Test the model with a prompt.
+* **Tools**: `mlflow_model.predict()`
+* **Input**: JSON with `messages` (system, user), `temperature`, and `max_tokens`
+* **Output**: Model-generated response.
+
+
+
 LLaMA-3.1-8B-Instruct Fine-Tuning Pipeline (PEFT + MLflow)
 Environment Setup:
 Import all required libraries (transformers, datasets, torch, mlflow, etc.).
