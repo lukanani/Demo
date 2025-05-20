@@ -1,3 +1,124 @@
+# LLaMA-3.1-8B-Instruct Fine-Tuning with LoRA and MLflow
+
+# Step 1: Environment Setup
+import random, os, torch, numpy as np, pandas as pd
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from datasets import Dataset, DatasetDict
+from sklearn.model_selection import train_test_split
+
+def seed_everything(seed: int):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+SEED = 42
+seed_everything(SEED)
+
+# Step 2: Load Tokenizer and Model
+MODEL_PATH = "/path/to/Llama-3.1-8B-Instruct"
+tokenizer = AutoTokenizer.from_pretrained(
+    MODEL_PATH, model_max_length=1024, padding_side="left", truncation=True, padding=True
+)
+tokenizer.pad_token = tokenizer.eos_token
+model = AutoModelForCausalLM.from_pretrained(MODEL_PATH)
+model.resize_token_embeddings(len(tokenizer))
+
+# Step 3: Load and Format Dataset
+df = pd.read_csv("qa_dataset.csv")[["Question", "Answer"]].dropna().sample(frac=1).reset_index(drop=True)
+def format_example(row):
+    messages = [
+        {"role": "system", "content": "Answer the question"},
+        {"role": "user", "content": row["Question"]},
+        {"role": "assistant", "content": row["Answer"]}
+    ]
+    return tokenizer.apply_chat_template(messages, tokenize=False)
+df["text"] = df.apply(format_example, axis=1)
+
+# Step 4: Token Count Check
+def count_tokens(row):
+    return len(tokenizer(row["text"], add_special_tokens=True)["input_ids"])
+df["token_count"] = df.apply(count_tokens, axis=1)
+
+# Step 5: Dataset Split and Convert to HF Format
+val, test = train_test_split(df, test_size=0.2, random_state=SEED)
+dataset = DatasetDict({
+    "train": Dataset.from_pandas(df),
+    "validation": Dataset.from_pandas(val),
+    "test": Dataset.from_pandas(test)
+})
+
+# Step 6: Configure LoRA
+from peft import LoraConfig, TaskType, get_peft_model
+lora_config = LoraConfig(
+    r=64, lora_alpha=128, target_modules="all-linear", lora_dropout=0.1,
+    bias="none", task_type=TaskType.CAUSAL_LM
+)
+model = get_peft_model(model, lora_config)
+
+# Step 7: Define Training Config with MLflow
+from trl import SFTConfig
+OUTPUT_DIR = "/path/to/output"
+sft_config = SFTConfig(
+    output_dir=OUTPUT_DIR, dataset_text_field="text", num_train_epochs=4,
+    max_seq_length=1024, gradient_checkpointing=False, per_device_train_batch_size=2,
+    per_device_eval_batch_size=2, gradient_accumulation_steps=4, learning_rate=1e-4,
+    fp16=True, eval_strategy="steps", logging_steps=10, save_strategy="steps",
+    save_steps=0.2, eval_steps=0.2, lr_scheduler_type="cosine", report_to="mlflow", seed=SEED
+)
+
+# Step 8: Train with SFTTrainer and Log to MLflow
+from trl import SFTTrainer
+import mlflow
+with mlflow.start_run():
+    trainer = SFTTrainer(
+        model=model,
+        args=sft_config,
+        train_dataset=dataset["train"],
+        eval_dataset=dataset["validation"],
+        tokenizer=tokenizer
+    )
+    trainer.train()
+    trainer.save_model(OUTPUT_DIR)
+    tokenizer.save_pretrained(OUTPUT_DIR)
+    mlflow.log_params(sft_config.to_dict())
+    mlflow.log_artifact(OUTPUT_DIR)
+
+# Step 9: Merge LoRA Adapters
+from peft import PeftModel
+peft_model = PeftModel.from_pretrained(model, OUTPUT_DIR)
+merged_model = peft_model.merge_and_unload()
+
+# Step 10: Register Final Model to MLflow
+from transformers import pipeline
+mlflow.transformers.log_model(
+    transformers_model=pipeline("text-generation", model=merged_model, tokenizer=tokenizer),
+    artifact_path="merged_model_without_model_config",
+    task="llm/v1/chat"
+)
+
+# Step 11: Run Inference Example
+mlflow_model = mlflow.pyfunc.load_model("runs:/<run_id>/merged_model_without_model_config")
+mlflow_model.predict({
+    "messages": [
+        {"role": "system", "content": "Answer the question."},
+        {"role": "user", "content": "What is LoRA?"}
+    ],
+    "temperature": 0.5,
+    "max_tokens": 100
+})
+
+# Step 12: What is LoRA?
+# LoRA (Low-Rank Adaptation) updates a small set of trainable matrices A and B:
+# W' = W + A @ B
+# W = frozen weight matrix
+# A = [r x d], B = [d x k], where r is much smaller
+# Benefits: 90%+ parameter savings, low memory, no catastrophic forgetting, modular
+# Use merge_and_unload() to finalize model after training
+
+
+
+
+
+
 ### LLaMA-3.1-8B-Instruct Fine-Tuning Pipeline (PEFT + MLflow)
 
 ---
