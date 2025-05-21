@@ -1,3 +1,8 @@
+For testing the procedural questions, I have rerun the pipeline for the Discrimination Report domain. The QA pairs were generated successfully, and I am currently verifying the answers to the procedural questions
+
+
+
+
 # LLaMA-3.1-8B-Instruct Fine-Tuning with LoRA and MLflow
 
 # Step 1: Environment Setup
