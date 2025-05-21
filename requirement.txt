@@ -1,3 +1,10 @@
+
+On the call, you can ask me different scenarios, and I will demonstrate them. If it's not up to your expectations, I will stop and work on it. I'm requesting the call because I want to avoid facing similar issues again in the future.
+
+
+
+
+
 For testing, I injected a document related to the SOP. After the injection, I asked a few questions based on that document, but it did not return the answers. Instead, it gave the following response to the questions:
 
 
