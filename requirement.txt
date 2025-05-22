@@ -1,3 +1,19 @@
+import pandas as pd
+import tiktoken  # for token counting
+
+# Load Excel file
+df = pd.read_excel("your_file.xlsx")  # Update with your file path
+
+# Choose tokenizer (e.g., for OpenAI's gpt-3.5-turbo or gpt-4)
+encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+
+# Count tokens in 'Answer' column
+df['Answer_Token_Count'] = df['Answer'].apply(lambda x: len(encoding.encode(str(x))) if pd.notna(x) else 0)
+
+# Save to new Excel file
+df.to_excel("output_with_token_counts.xlsx", index=False)
+
+
 
 On the call, you can ask me different scenarios, and I will demonstrate them. If it's not up to your expectations, I will stop and work on it. I'm requesting the call because I want to avoid facing similar issues again in the future.
 
