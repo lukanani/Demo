@@ -1,3 +1,72 @@
+import pandas as pd
+import requests
+
+# Step 1: Define retriever strategies in the new format
+retriever_strategy = {
+    "items": [
+        {
+            "name": "MultiQuery Retriever",
+            "config": {
+                "top_k": 3,
+                "kwargs": {
+                    "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives. The user questions are focused on the documents that have been provided with tables and text data. Each query MUST tackle the question from a different viewpoint. We want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines.\nOriginal question: (question)",
+                    "score_threshold": 0.8
+                },
+                "search_type": "similarity",
+                "searchConfig": {
+                    "activateHybridSearch": False,
+                    "numberOfTextBasedResults": 4
+                },
+                "rerankerConfig": {
+                    "activateReranker": False,
+                    "numberOfRerankedResults": 3
+                }
+            }
+        }
+        # You can add more strategies to this list
+    ]
+}
+
+# Step 2: Define evaluation questions
+questions = [
+    "What is the role of fiduciary duties?",
+    "Explain the concept of risk-adjusted returns.",
+    "How does SSGA manage index tracking error?",
+    "What is the purpose of an investment policy statement?",
+    "Describe the difference between active and passive management."
+]
+
+# Step 3: Replace with your actual deployed API endpoint
+base_url = "http://your-dev-app/api/ask"
+
+# Step 4: Query and collect responses
+all_results = []
+
+for question in questions:
+    row = {"question": question}
+    for strategy in retriever_strategy["items"]:
+        try:
+            payload = {
+                "question": question,
+                "retriever_config": strategy
+            }
+            response = requests.post(base_url, json=payload, timeout=30)
+            result = response.json().get("answer", "No response")
+        except Exception as e:
+            result = f"Error: {str(e)}"
+        row[strategy["name"].replace(" ", "_").lower() + "_response"] = result
+    all_results.append(row)
+
+# Step 5: Save results to Excel
+df = pd.DataFrame(all_results)
+df.to_excel("ssgenai_rag_retriever_results.xlsx", index=False)
+print("Results saved to ssgenai_rag_retriever_results.xlsx")
+
+
+
+
+
+
 row[strategy["name"].replace
 
 
