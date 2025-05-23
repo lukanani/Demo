@@ -1,4 +1,56 @@
 import pandas as pd
+import requests
+
+# Step 1: Define retriever configurations
+retriever_configs = {
+    "config_1": {"retriever_type": "faiss", "top_k": 3, "mode": "similarity"},
+    "config_2": {"retriever_type": "faiss", "top_k": 5, "mode": "mmr"},
+    "config_3": {"retriever_type": "bm25", "top_k": 3, "k1": 1.2, "b": 0.75},
+    "config_4": {"retriever_type": "bm25", "top_k": 5, "k1": 2.0, "b": 1.0},
+    "config_5": {"retriever_type": "multiquery", "top_k": 5, "merge_strategy": "concatenate", "llm_variant": "gpt-3.5"},
+}
+
+# Step 2: Define evaluation questions
+questions = [
+    "What is the role of fiduciary duties?",
+    "Explain the concept of risk-adjusted returns.",
+    "How does SSGA manage index tracking error?",
+    "What is the purpose of an investment policy statement?",
+    "Describe the difference between active and passive management."
+]
+
+# Step 3: Replace this with your actual dev endpoint
+base_url = "http://your-dev-app/api/ask"
+
+# Step 4: Collect responses
+all_results = []
+
+for q in questions:
+    row = {"question": q}
+    for config_id, config in retriever_configs.items():
+        try:
+            payload = {
+                "question": q,
+                "retriever_config": config
+            }
+            response = requests.post(base_url, json=payload, timeout=30)
+            result = response.json().get("answer", "No response")
+        except Exception as e:
+            result = f"Error: {str(e)}"
+        row[config_id + "_response"] = result
+    all_results.append(row)
+
+# Step 5: Export to Excel
+df = pd.DataFrame(all_results)
+df.to_excel("retriever_comparison_results.xlsx", index=False)
+print("Saved results to retriever_comparison_results.xlsx")
+
+
+
+
+
+
+import pandas as pd
 import tiktoken
 
 # Function to calculate tokens using tiktoken
