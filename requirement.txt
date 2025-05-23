@@ -1,3 +1,8 @@
+row[strategy["name"].replace
+
+
+
+
 import pandas as pd
 import requests
 
