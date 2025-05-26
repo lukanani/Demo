@@ -1,3 +1,63 @@
+import requests
+import pandas as pd
+
+# Constants
+BASE_URL = "http://10.76.22.174:8081"
+APP_ID = "cf7938a6-4deb-414c-89d0-d5370cb0fe0f"
+ENDPOINT = f"{BASE_URL}/agi/cvs/api/v1/apps/{APP_ID}/conversations"
+
+# Headers (add Authorization if needed)
+headers = {
+    "Content-Type": "application/json"
+    # "Authorization": "Bearer YOUR_TOKEN"  # Uncomment if API is protected
+}
+
+# List of questions
+questions = [
+    "What is NAV in fund accounting?",
+    "Explain the role of a transfer agent.",
+    "What is tracking error in investment portfolios?",
+    "Define risk-adjusted return.",
+    "How does portfolio diversification work?"
+]
+
+results = []
+
+for question in questions:
+    payload = {
+        "userQuery": question
+    }
+
+    try:
+        response = requests.post(ENDPOINT, headers=headers, json=payload, timeout=30)
+        response.raise_for_status()
+
+        # Print and store result
+        print("Response:", response.json())
+        results.append({
+            "Question": question,
+            "Answer": response.json()
+        })
+
+    except Exception as e:
+        print("Error:", str(e))
+        results.append({
+            "Question": question,
+            "Answer": f"Error: {str(e)}"
+        })
+
+# Save to Excel
+df = pd.DataFrame(results)
+df.to_excel("conversations_output.xlsx", index=False)
+print("Saved results to conversations_output.xlsx")
+
+
+
+
+
+
+
+
 The original question-answer pairs for the discrimination report domain have been generated. The files are available at the specified location
 "I have started generating original question-answer pairs for the Fund Accounting domain."
 
