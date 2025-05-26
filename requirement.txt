@@ -1,3 +1,142 @@
+# Extend the user's provided 5 strategies into 30 by copying and varying the configuration values
+
+base_strategies = [
+    {
+        "name": "MultiQueryRetriever",
+        "config": {
+            "top_k": 3,
+            "kwargs": {
+                "prompt": (
+                    "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\n"
+                    "The user questions are focused on the documents that have been provided with tables, and text data.\n"
+                    "Each query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. "
+                    "Provide these alternative questions separated by newlines Original question: (question)"
+                ),
+                "score_threshold": 0.8
+            },
+            "search_type": "similarity",
+            "searchConfig": {
+                "activateHybridSearch": False,
+                "numberOfTextBasedResults": 4
+            },
+            "rerankerConfig": {
+                "activateReranker": False,
+                "numberOfRerankedResults": 3
+            }
+        }
+    },
+    {
+        "name": "SelfQueryRetriever",
+        "config": {
+            "kwargs": {
+                "score_threshold": 0.8,
+                "document_contents": "The document contains tabular and textual information",
+                "metadata_field_info": [
+                    {"name": "dsId", "type": "string", "description": "The id of the datasource where the document is stored"},
+                    {"name": "docId", "type": "string", "description": "An id for the document"},
+                    {"name": "fileName", "type": "string", "description": "Name of the file"}
+                ]
+            },
+            "searchConfig": {
+                "activateHybridSearch": False,
+                "numberOfTextBasedResults": 4
+            },
+            "rerankerConfig": {
+                "activateReranker": False,
+                "numberOfRerankedResults": 3
+            }
+        }
+    },
+    {
+        "name": "ContextualCompressionRetriever",
+        "config": {
+            "kwargs": {
+                "filters": "llmextractor",
+                "score_threshold": 0.8
+            },
+            "search_type": "similarity",
+            "searchConfig": {
+                "activateHybridSearch": False,
+                "numberOfTextBasedResults": 4
+            },
+            "rerankerConfig": {
+                "activateReranker": False,
+                "numberOfRerankedResults": 3
+            },
+            "embedding_model": "azure-openai.text-embedding-ada-002",
+            "similarity_threshold": 0.76
+        }
+    },
+    {
+        "name": "EnsembleRetriever",
+        "config": {
+            "top_k": 3,
+            "kwargs": {
+                "weights": [0.9, 0.1],
+                "score_threshold": 0.8
+            },
+            "search_type": "similarity",
+            "searchConfig": {
+                "activateHybridSearch": False,
+                "numberOfTextBasedResults": 4
+            },
+            "rerankerConfig": {
+                "activateReranker": False,
+                "numberOfRerankedResults": 3
+            },
+            "numberOfBM25Documents": 5
+        }
+    },
+    {
+        "name": "NaiveRetriever",
+        "config": {
+            "top_k": 3,
+            "kwargs": {
+                "score_threshold": 0.8
+            },
+            "search_type": "similarity",
+            "searchConfig": {
+                "activateHybridSearch": False,
+                "numberOfTextBasedResults": 4
+            },
+            "rerankerConfig": {
+                "activateReranker": False,
+                "numberOfRerankedResults": 3
+            }
+        }
+    }
+]
+
+# Generate 30 variants
+all_strategies = []
+for i in range(30):
+    base = base_strategies[i % len(base_strategies)]
+    new_strategy = {
+        "name": f"{base['name']}_{i+1}",
+        "config": base["config"].copy()
+    }
+    config = new_strategy["config"]
+
+    # Randomize configuration values
+    config["top_k"] = random.choice([3, 5, 7, 10]) if "top_k" in config else 3
+    config["search_type"] = random.choice(["similarity", "bm25", "hybrid"]) if "search_type" in config else "similarity"
+    config["searchConfig"]["activateHybridSearch"] = random.choice([True, False])
+    config["searchConfig"]["numberOfTextBasedResults"] = random.choice([3, 5, 7, 10])
+    config["rerankerConfig"]["activateReranker"] = random.choice([True, False])
+    config["rerankerConfig"]["numberOfRerankedResults"] = random.choice([3, 5, 7, 10])
+    config["kwargs"]["score_threshold"] = round(random.uniform(0.6, 0.9), 2)
+
+    all_strategies.append(new_strategy)
+
+# Convert to DataFrame for preview
+df_30_strategies = pd.DataFrame(all_strategies)
+from ace_tools import display_dataframe_to_user
+display_dataframe_to_user(name="30 Final Retriever Strategies", dataframe=df_30_strategies)
+
+
+
+
+
 import requests
 import json
 import copy
