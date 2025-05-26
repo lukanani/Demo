@@ -1,3 +1,11 @@
+The original question-answer pairs for the discrimination report domain have been generated. The files are available at the specified location
+"I have started generating original question-answer pairs for the Fund Accounting domain."
+
+
+
+
+
+
 import pandas as pd
 import requests
 
