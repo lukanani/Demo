@@ -1,0 +1,574 @@
+{
+  "items": [
+    {
+      "name": "MultiQueryRetriever_1",
+      "config": {
+        "top_k": 10,
+        "search_type": "similarity",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 5
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 7
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.71
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_2",
+      "config": {
+        "top_k": 5,
+        "search_type": "hybrid",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 3
+        },
+        "rerankerConfig": {
+          "activateReranker": true,
+          "numberOfRerankedResults": 10
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.6
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_3",
+      "config": {
+        "top_k": 10,
+        "search_type": "hybrid",
+        "searchConfig": {
+          "activateHybridSearch": true,
+          "numberOfTextBasedResults": 7
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 5
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.88
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_4",
+      "config": {
+        "top_k": 7,
+        "search_type": "hybrid",
+        "searchConfig": {
+          "activateHybridSearch": true,
+          "numberOfTextBasedResults": 7
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 10
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.7
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_5",
+      "config": {
+        "top_k": 3,
+        "search_type": "similarity",
+        "searchConfig": {
+          "activateHybridSearch": true,
+          "numberOfTextBasedResults": 3
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 10
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.62
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_6",
+      "config": {
+        "top_k": 3,
+        "search_type": "bm25",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 10
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 5
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.85
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_7",
+      "config": {
+        "top_k": 7,
+        "search_type": "bm25",
+        "searchConfig": {
+          "activateHybridSearch": true,
+          "numberOfTextBasedResults": 5
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 7
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.76
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_8",
+      "config": {
+        "top_k": 7,
+        "search_type": "hybrid",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 7
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 10
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.83
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_9",
+      "config": {
+        "top_k": 10,
+        "search_type": "similarity",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 7
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 7
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.81
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_10",
+      "config": {
+        "top_k": 7,
+        "search_type": "bm25",
+        "searchConfig": {
+          "activateHybridSearch": true,
+          "numberOfTextBasedResults": 3
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 5
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.73
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_11",
+      "config": {
+        "top_k": 10,
+        "search_type": "similarity",
+        "searchConfig": {
+          "activateHybridSearch": true,
+          "numberOfTextBasedResults": 5
+        },
+        "rerankerConfig": {
+          "activateReranker": true,
+          "numberOfRerankedResults": 7
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.9
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_12",
+      "config": {
+        "top_k": 10,
+        "search_type": "similarity",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 3
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 5
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.61
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_13",
+      "config": {
+        "top_k": 3,
+        "search_type": "similarity",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 3
+        },
+        "rerankerConfig": {
+          "activateReranker": true,
+          "numberOfRerankedResults": 10
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.77
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_14",
+      "config": {
+        "top_k": 10,
+        "search_type": "bm25",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 7
+        },
+        "rerankerConfig": {
+          "activateReranker": true,
+          "numberOfRerankedResults": 10
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.9
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_15",
+      "config": {
+        "top_k": 3,
+        "search_type": "hybrid",
+        "searchConfig": {
+          "activateHybridSearch": true,
+          "numberOfTextBasedResults": 10
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 7
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.63
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_16",
+      "config": {
+        "top_k": 7,
+        "search_type": "bm25",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 10
+        },
+        "rerankerConfig": {
+          "activateReranker": true,
+          "numberOfRerankedResults": 5
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.61
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_17",
+      "config": {
+        "top_k": 3,
+        "search_type": "hybrid",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 10
+        },
+        "rerankerConfig": {
+          "activateReranker": true,
+          "numberOfRerankedResults": 10
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.77
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_18",
+      "config": {
+        "top_k": 3,
+        "search_type": "hybrid",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 3
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 5
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.86
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_19",
+      "config": {
+        "top_k": 5,
+        "search_type": "hybrid",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 3
+        },
+        "rerankerConfig": {
+          "activateReranker": true,
+          "numberOfRerankedResults": 3
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.86
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_20",
+      "config": {
+        "top_k": 10,
+        "search_type": "hybrid",
+        "searchConfig": {
+          "activateHybridSearch": true,
+          "numberOfTextBasedResults": 7
+        },
+        "rerankerConfig": {
+          "activateReranker": true,
+          "numberOfRerankedResults": 3
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.61
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_21",
+      "config": {
+        "top_k": 10,
+        "search_type": "bm25",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 10
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 3
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.66
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_22",
+      "config": {
+        "top_k": 10,
+        "search_type": "hybrid",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 10
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 3
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.79
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_23",
+      "config": {
+        "top_k": 3,
+        "search_type": "bm25",
+        "searchConfig": {
+          "activateHybridSearch": true,
+          "numberOfTextBasedResults": 3
+        },
+        "rerankerConfig": {
+          "activateReranker": true,
+          "numberOfRerankedResults": 10
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.7
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_24",
+      "config": {
+        "top_k": 7,
+        "search_type": "similarity",
+        "searchConfig": {
+          "activateHybridSearch": true,
+          "numberOfTextBasedResults": 10
+        },
+        "rerankerConfig": {
+          "activateReranker": true,
+          "numberOfRerankedResults": 10
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.88
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_25",
+      "config": {
+        "top_k": 3,
+        "search_type": "hybrid",
+        "searchConfig": {
+          "activateHybridSearch": true,
+          "numberOfTextBasedResults": 10
+        },
+        "rerankerConfig": {
+          "activateReranker": true,
+          "numberOfRerankedResults": 10
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.83
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_26",
+      "config": {
+        "top_k": 10,
+        "search_type": "similarity",
+        "searchConfig": {
+          "activateHybridSearch": true,
+          "numberOfTextBasedResults": 10
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 10
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.66
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_27",
+      "config": {
+        "top_k": 3,
+        "search_type": "similarity",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 10
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 10
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.69
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_28",
+      "config": {
+        "top_k": 5,
+        "search_type": "similarity",
+        "searchConfig": {
+          "activateHybridSearch": false,
+          "numberOfTextBasedResults": 10
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 10
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.67
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_29",
+      "config": {
+        "top_k": 3,
+        "search_type": "hybrid",
+        "searchConfig": {
+          "activateHybridSearch": true,
+          "numberOfTextBasedResults": 10
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 3
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.79
+        }
+      }
+    },
+    {
+      "name": "MultiQueryRetriever_30",
+      "config": {
+        "top_k": 5,
+        "search_type": "hybrid",
+        "searchConfig": {
+          "activateHybridSearch": true,
+          "numberOfTextBasedResults": 3
+        },
+        "rerankerConfig": {
+          "activateReranker": false,
+          "numberOfRerankedResults": 5
+        },
+        "kwargs": {
+          "prompt": "Your task is to generate 3 different search queries that aim to answer the user question from multiple perspectives.\nThe user questions are focused on the documents that have been provided with tables, and text data.\nEach query MUST tackle the question from a different viewpoint, we want to get a variety of RELEVANT search results. Provide these alternative questions separated by newlines Original question: (question)",
+          "score_threshold": 0.69
+        }
+      }
+    }
+  ]
+}
