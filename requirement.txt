@@ -1,6 +1,122 @@
 import requests
 import pandas as pd
 
+# API endpoint
+ASK_ENDPOINT = "https://rai.it.statestr.com:4327/agi/query"
+
+# Optional headers (include token if needed)
+headers = {
+    "Content-Type": "application/json"
+    # "Authorization": "Bearer YOUR_ACCESS_TOKEN"
+}
+
+# Application ID
+app_id = "cf7938a6-4deb-414c-89d0-d5370cb0fe0f"
+
+# Sample questions
+questions = [
+    "What is NAV in fund accounting?",
+    "Explain the role of a custodian.",
+    "What is tracking error in passive investment?",
+]
+
+# Define multiple retriever strategies
+retriever_strategies = [
+    {
+        "name": "MultiQuery Retriever",
+        "config": {
+            "top_k": 3,
+            "search_type": "similarity",
+            "searchConfig": {
+                "activateHybridSearch": False,
+                "numberOfTextBasedResults": 4
+            },
+            "rerankerConfig": {
+                "activateReranker": False,
+                "numberOfRerankedResults": 3
+            },
+            "kwargs": {
+                "prompt": "Generate queries from multiple viewpoints.",
+                "score_threshold": 0.8
+            }
+        }
+    },
+    {
+        "name": "BM25 Retriever",
+        "config": {
+            "top_k": 3,
+            "search_type": "bm25",
+            "searchConfig": {
+                "activateHybridSearch": False
+            },
+            "rerankerConfig": {
+                "activateReranker": False
+            },
+            "kwargs": {}
+        }
+    },
+    {
+        "name": "Hybrid Retriever",
+        "config": {
+            "top_k": 3,
+            "search_type": "hybrid",
+            "searchConfig": {
+                "activateHybridSearch": True,
+                "numberOfTextBasedResults": 3
+            },
+            "rerankerConfig": {
+                "activateReranker": True,
+                "numberOfRerankedResults": 3
+            },
+            "kwargs": {
+                "score_threshold": 0.75
+            }
+        }
+    }
+]
+
+# Collect results
+results = []
+
+for strategy in retriever_strategies:
+    strategy_name = strategy["name"]
+    
+    for question in questions:
+        payload = {
+            "question": question,
+            "appId": app_id,
+            "retriever_config": strategy
+        }
+
+        try:
+            response = requests.post(ASK_ENDPOINT, headers=headers, json=payload, timeout=30, verify=False)
+            response.raise_for_status()
+            answer = response.json().get("answer", "No answer found")
+        except Exception as e:
+            answer = f"Error: {str(e)}"
+
+        results.append({
+            "Retriever": strategy_name,
+            "Question": question,
+            "Answer": answer
+        })
+
+# Export to Excel
+df = pd.DataFrame(results)
+df.to_excel("multi_strategy_answers.xlsx", index=False)
+print("Saved results to multi_strategy_answers.xlsx")
+
+
+
+
+
+
+
+
+
+import requests
+import pandas as pd
+
 # Constants
 BASE_URL = "http://10.76.22.174:8081"
 APP_ID = "cf7938a6-4deb-414c-89d0-d5370cb0fe0f"
