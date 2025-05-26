@@ -1,4 +1,153 @@
 import requests
+import json
+import copy
+import pandas as pd
+
+# --- Constants ---
+MGMT_BASE_URL = "http://10.76.22.174:10005"
+CONV_BASE_URL = "http://10.76.22.174:8081"
+APP_ID = "cf7938a6-4deb-414c-89d0-d5370cb0fe0f"
+
+UPDATE_ENDPOINT = f"{MGMT_BASE_URL}/agi/mgmt/api/v1/apps/{APP_ID}"
+CONV_ENDPOINT = f"{CONV_BASE_URL}/agi/cvs/api/v1/apps/{APP_ID}/conversations"
+
+HEADERS = {
+    "Content-Type": "application/json"
+    # "Authorization": "Bearer YOUR_ADMIN_TOKEN"
+}
+
+# --- Fixed app metadata (other than retrieverConfig) ---
+BASE_METADATA = {
+    "title": "Fund Accounting Q&A App",
+    "prompt": "You are a fund accounting expert. Answer concisely.",
+    "description": "Q&A for finance, investment, and NAV-related questions.",
+    "category": "Finance",
+    "metadata": {},
+    "vectorStore": {},
+    "introduction": "Welcome to the Fund Accounting LLM assistant.",
+    "icon": "",
+    "raiclient": {
+        "eamClientId": "sample-client-id",
+        "raiClientId": "sample-rai-client-id",
+        "generative": {
+            "model": "gpt-4",
+            "params": {},
+            "n": 1,
+            "temperature": 0.7
+        },
+        "embedding": {
+            "model": "embedding-model",
+            "params": {}
+        },
+        "multimodel": {
+            "model": "multi-model",
+            "params": {}
+        },
+        "eamClientSecret": "sample-client-secret"
+    },
+    "entitlements": {}
+}
+
+# --- Questions to send after each retriever update ---
+questions = [
+    "What is NAV in fund accounting?",
+    "What is the role of a transfer agent?",
+    "How is tracking error calculated?",
+    "Explain risk-adjusted return.",
+    "How does portfolio diversification reduce risk?"
+]
+
+# --- Retriever Strategies ---
+RETRIEVER_STRATEGY = {
+    "items": [
+        {
+            "name": "MultiQueryRetriever",
+            "config": {
+                "top_k": 3,
+                "kwargs": {
+                    "prompt": "Generate 3 different search queries from different angles.",
+                    "score_threshold": 0.8
+                },
+                "search_type": "similarity",
+                "searchConfig": {
+                    "activateHybridSearch": False,
+                    "numberOfTextBasedResults": 4
+                },
+                "rerankerConfig": {
+                    "activateReranker": False,
+                    "numberOfRerankedResults": 3
+                }
+            }
+        },
+        {
+            "name": "HybridRetriever",
+            "config": {
+                "top_k": 5,
+                "search_type": "hybrid",
+                "searchConfig": {
+                    "activateHybridSearch": True,
+                    "numberOfTextBasedResults": 5
+                },
+                "rerankerConfig": {
+                    "activateReranker": True,
+                    "numberOfRerankedResults": 5
+                },
+                "kwargs": {
+                    "prompt": "Try different angles for query generation.",
+                    "score_threshold": 0.7
+                }
+            }
+        }
+    ]
+}
+
+# --- Final results ---
+all_results = []
+
+# --- Loop: update retriever + send questions ---
+for strategy in RETRIEVER_STRATEGY["items"]:
+    strategy_name = strategy["name"]
+
+    # 1. Update App Metadata with current retriever strategy
+    payload = copy.deepcopy(BASE_METADATA)
+    payload["retrieverConfig"] = strategy
+
+    print(f"\n[Updating retriever config: {strategy_name}]")
+    update_response = requests.post(UPDATE_ENDPOINT, headers=HEADERS, json=payload, timeout=30)
+    print("Update Status:", update_response.status_code)
+
+    # 2. Run questions using updated retriever config
+    for question in questions:
+        try:
+            conv_payload = { "userQuery": question }
+            conv_response = requests.post(CONV_ENDPOINT, headers=HEADERS, json=conv_payload, timeout=30)
+            conv_response.raise_for_status()
+
+            try:
+                answer = conv_response.json()
+            except:
+                answer = {"error": conv_response.text}
+
+        except Exception as e:
+            answer = {"error": str(e)}
+
+        all_results.append({
+            "Retriever Strategy": strategy_name,
+            "Question": question,
+            "Answer": json.dumps(answer)
+        })
+
+# --- Save final output to Excel ---
+df = pd.DataFrame(all_results)
+df.to_excel("retriever_strategy_QA_output.xlsx", index=False)
+print("\nSaved results to retriever_strategy_QA_output.xlsx")
+
+
+
+
+
+
+import requests
 import pandas as pd
 
 # API endpoint
