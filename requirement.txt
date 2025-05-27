@@ -1,3 +1,23 @@
+import torch
+from torch.distributed import init_process_group, destroy_process_group
+from torch.distributed._tensor import DeviceMesh, DTensor
+
+# Initialize process group (required before creating device mesh)
+init_process_group(backend="nccl")  # Or "gloo" for CPU testing
+
+# Define a device mesh (e.g., for 2 GPUs)
+device_mesh = DeviceMesh("cuda", list(range(torch.cuda.device_count()))[:2])
+
+# Local tensor
+local_tensor = torch.randn(4, 4).cuda()
+
+# Distribute the tensor
+dtensor = DTensor.from_local(local_tensor, device_mesh, placements=["replicate"])
+
+print(dtensor)
+
+# Clean up
+destroy_process_group()
 Hi Team,
 
 The retriever strategy evaluation and corresponding configurations are stored in the Box folder shared earlier. I'm still working on this part.
