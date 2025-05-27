@@ -1,3 +1,18 @@
+Hi Team,
+
+The retriever strategy evaluation and corresponding configurations are stored in the Box folder shared earlier. I'm still working on this part.
+
+For initial testing, I’m using a different question. I will now proceed to create the app, set up the data group in the predev environment, and fetch the results.
+
+I'll use the six questions provided by the client for testing. Additionally, I will update the Excel sheet today to include the following details: retriever strategy, strategy configuration, question, and corresponding answer
+
+
+
+
+
+
+
+
 import requests
 import json
 import copy
