@@ -1,3 +1,120 @@
+import requests
+import json
+import copy
+import pandas as pd
+
+# --- Constants ---
+MGMT_BASE_URL = "http://10.76.22.174:10005"
+CONV_BASE_URL = "http://10.76.22.174:8081"
+APP_ID = "cf7938a6-4deb-414c-89d0-d5370cb0fe0f"
+
+UPDATE_ENDPOINT = f"{MGMT_BASE_URL}/agi/mgmt/api/v1/apps/{APP_ID}"
+CONV_ENDPOINT = f"{CONV_BASE_URL}/agi/cvs/api/v1/apps/{APP_ID}/conversations"
+
+HEADERS = {
+    "Content-Type": "application/json"
+    # "Authorization": "Bearer YOUR_ADMIN_TOKEN"
+}
+
+# --- Base app metadata (everything except retrieverConfig) ---
+BASE_METADATA = {
+    "title": "Fund Accounting Q&A App",
+    "prompt": "You are a fund accounting expert. Answer concisely.",
+    "description": "Q&A for finance, investment, and NAV-related questions.",
+    "category": "Finance",
+    "metadata": {},
+    "vectorStore": {},
+    "introduction": "Welcome to the Fund Accounting LLM assistant.",
+    "icon": "",
+    "raiclient": {
+        "eamClientId": "sample-client-id",
+        "raiClientId": "sample-rai-client-id",
+        "generative": {
+            "model": "gpt-4",
+            "params": {},
+            "n": 1,
+            "temperature": 0.7
+        },
+        "embedding": {
+            "model": "embedding-model",
+            "params": {}
+        },
+        "multimodel": {
+            "model": "multi-model",
+            "params": {}
+        },
+        "eamClientSecret": "sample-client-secret"
+    },
+    "entitlements": {}
+}
+
+# --- Load 50 retriever strategies from JSON file ---
+with open("50_final_corrected_strategies.json", "r") as f:
+    RETRIEVER_STRATEGY = json.load(f)
+
+# --- Sample Questions ---
+questions = [
+    "What is NAV in fund accounting?",
+    "What is the role of a transfer agent?",
+    "How is tracking error calculated?",
+    "Explain risk-adjusted return.",
+    "How does portfolio diversification reduce risk?"
+]
+
+# --- Final results container ---
+all_results = []
+
+# --- Loop through each retriever strategy ---
+for strategy in RETRIEVER_STRATEGY["items"]:
+    strategy_name = strategy["name"]
+    strategy_config = json.dumps(strategy, indent=2)  # Full strategy including name
+
+    # 1. Update app metadata with this retriever config
+    payload = copy.deepcopy(BASE_METADATA)
+    payload["retrieverConfig"] = strategy
+
+    print(f"\n[Updating retriever config: {strategy_name}]")
+    try:
+        update_response = requests.post(UPDATE_ENDPOINT, headers=HEADERS, json=payload, timeout=30)
+        print("Update Status:", update_response.status_code)
+    except Exception as e:
+        print("Failed to update metadata:", str(e))
+        continue
+
+    # 2. Ask each question and collect answer
+    for question in questions:
+        try:
+            conv_payload = {"userQuery": question}
+            conv_response = requests.post(CONV_ENDPOINT, headers=HEADERS, json=conv_payload, timeout=30)
+            conv_response.raise_for_status()
+            try:
+                answer = conv_response.json().get("botResponse", json.dumps(conv_response.json()))
+            except:
+                answer = conv_response.text
+        except Exception as e:
+            answer = f"Error: {str(e)}"
+
+        all_results.append({
+            "Retriever Strategy": strategy_name,
+            "Retriever Config": strategy_config,
+            "Question": question,
+            "Answer": answer
+        })
+
+# --- Save all results to Excel ---
+df = pd.DataFrame(all_results)
+df.to_excel("retriever_strategy_QA_output.xlsx", index=False)
+print("\nSaved results to retriever_strategy_QA_output.xlsx")
+
+
+
+
+
+
+
+
+
+
 # Extend the user's provided 5 strategies into 30 by copying and varying the configuration values
 
 base_strategies = [
