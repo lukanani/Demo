@@ -1,3 +1,8 @@
+After creating the app in the predev environment, an error message is displayed during the approval process: 'Not approved'. Requesting your assistance in looking into this issue.
+
+
+
+
 I have completed generating original question-answer pairs for three domains. Additionally, yesterday I generated diverse question-answer pairs for the Pre-NAV Analysis domain, resulting in 40,000 samples. This morning, I started generating diverse questions and answers for the Trade Review domain.
 
 
