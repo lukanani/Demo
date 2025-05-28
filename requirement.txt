@@ -1,3 +1,9 @@
+While onboarding in the predev environment, the Retriever strategies are not showing up—it displays 'No data'. Could someone please look into this?"
+
+
+
+
+
 # 2. Ask each question and collect answer
 for question in questions:
     try:
