@@ -1,3 +1,31 @@
+# 2. Ask each question and collect answer
+for question in questions:
+    try:
+        conv_payload = {"userQuery": question}
+        conv_response = requests.post(CONV_ENDPOINT, headers=HEADERS, json=conv_payload, timeout=30)
+        conv_response.raise_for_status()
+
+        response_json = conv_response.json()
+        bot_response = response_json.get("botResponse", "")  # Only botResponse
+        full_response = json.dumps(response_json)            # Entire raw JSON as string
+
+    except Exception as e:
+        bot_response = f"Error: {str(e)}"
+        full_response = bot_response
+
+    all_results.append({
+        "Retriever Strategy": strategy_name,
+        "Retriever Config": strategy_config,
+        "Question": question,
+        "Bot Response": bot_response,
+        "Full Raw Response": full_response
+    })
+
+
+
+
+
+
 import torch
 from torch.distributed import init_process_group, destroy_process_group
 from torch.distributed._tensor import DeviceMesh, DTensor
