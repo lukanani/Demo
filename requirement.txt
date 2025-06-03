@@ -1,3 +1,205 @@
+import os
+import json
+import base64
+import pandas as pd
+from concurrent.futures import ThreadPoolExecutor
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+from tenacity import retry, stop_after_attempt, wait_exponential
+from ssrai import SSRAIClient
+
+
+# -------- Configuration --------
+ssc_rai_client = SSRAIClient(
+    host="https://api-uat.statestr.com/",
+    eam_consumer_key="YOUR_KEY",
+    eam_consumer_secret="YOUR_SECRET",
+    auth_type="pat",
+    api_version="1.0"
+)
+
+chat_model_name = "ssgpt-40"  # Replace with actual
+llm = ssc_rai_client.llm(wrapper="langchain", model_name=chat_model_name)
+
+DIVERSE_QUESTION_PROMPT = """
+You are tasked to generate diverse question-answer pairs from input question-answer data.
+
+For each original pair, generate diverse questions and answers based on the following distribution:
+{type_count_description}
+
+### Question Types:
+1. Factual - Direct and fact-based
+2. Conceptual - Based on understanding of principles
+3. Inferential - Based on logical conclusions
+4. Reasoning-Based - Based on logical reasoning
+5. Procedural - Step-by-step process
+
+### Requirements:
+- Output format:
+{{
+  "id": "<unique_id>",
+  "question_type": "<question_type>",
+  "original_question": "<Original Question>",
+  "original_answer": "<Original Answer>",
+  "diverse_questions": [
+    {{
+      "diverse_question": "<New Question>",
+      "diverse_answer": "<Answer>"
+    }},
+    ...
+  ]
+}}
+- Procedural answers must retain step-by-step clarity.
+- Avoid repeating or subset questions.
+"""
+
+prompt = PromptTemplate(
+    input_variables=["input_json", "type_count_description"],
+    template=DIVERSE_QUESTION_PROMPT
+)
+
+llm_chain = LLMChain(llm=llm, prompt=prompt)
+
+
+# -------- Excel to JSON --------
+def convert_excel_to_json(file_path: str, output_json_path: str) -> str:
+    try:
+        df = pd.read_excel(file_path, dtype=str).fillna("")
+        required = {"Question Type", "Question", "Answer"}
+        if not required.issubset(df.columns):
+            raise KeyError(f"Missing columns. Required: {required}")
+        json_data = [
+            {
+                "Question_type": row["Question Type"],
+                "Question": row["Question"],
+                "Answer": row["Answer"]
+            } for _, row in df.iterrows()
+        ]
+        with open(output_json_path, "w", encoding="utf-8") as f:
+            json.dump(json_data, f, indent=4, ensure_ascii=False)
+        print(f"Saved JSON to {output_json_path}")
+        return output_json_path
+    except Exception as e:
+        print(f"Error: {e}")
+        return ""
+
+
+# -------- JSON Utils --------
+def read_json_file(file_path: str) -> list:
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error reading JSON: {e}")
+        return []
+
+
+def split_into_batches(input_list, batch_size):
+    for i in range(0, len(input_list), batch_size):
+        yield input_list[i:i + batch_size]
+
+
+# -------- Prompt Helper --------
+def get_type_count_description(type_counts: dict) -> str:
+    return "\n".join([f"- {qtype}: {count}" for qtype, count in type_counts.items()])
+
+
+# -------- Question Generation --------
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1))
+def generate_diverse_questions(input_json: str, type_counts: dict) -> list:
+    try:
+        type_desc = get_type_count_description(type_counts)
+        response = llm_chain.predict(input_json=input_json, type_count_description=type_desc)
+        return json.loads(response)
+    except Exception as e:
+        print(f"Parsing error: {e}")
+        return []
+
+
+# -------- Output Handling --------
+def clear_output(path="incremental_responses.json"):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump([], f)
+
+
+def append_to_output(batch_responses, path="incremental_responses.json"):
+    try:
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                existing_data = json.load(f)
+        else:
+            existing_data = []
+        existing_data.extend(batch_responses)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(existing_data, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Append error: {e}")
+
+
+def save_responses_to_excel(output_json_path, excel_file_path="diverse_output.xlsx"):
+    with open(output_json_path, "r", encoding="utf-8") as json_file:
+        data = json.load(json_file)
+
+    excel_data = []
+    for response in data:
+        for item in response["diverse_questions"]:
+            excel_data.append({
+                "ID": response["id"],
+                "Question Type": response["question_type"],
+                "Original Question": response["original_question"],
+                "Original Answer": response["original_answer"],
+                "Diverse Question": item["diverse_question"],
+                "Diverse Answer": item["diverse_answer"]
+            })
+
+    df = pd.DataFrame(excel_data)
+    df.sort_values(by=["Question Type", "ID"], inplace=True)
+    df.to_excel(excel_file_path, index=False, engine="openpyxl")
+    print(f"Saved to Excel at {excel_file_path}")
+
+
+# -------- Batch Processing --------
+def process_batches(data, batch_size, type_counts, output_path="incremental_responses.json", max_workers=3):
+    clear_output(output_path)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = []
+        for i, batch in enumerate(split_into_batches(data, batch_size), 1):
+            print(f"Processing Batch {i} with {len(batch)} QA pairs")
+            batch_input = json.dumps(batch)
+            futures.append(executor.submit(generate_diverse_questions, batch_input, type_counts))
+        for future in futures:
+            try:
+                result = future.result()
+                append_to_output(result, output_path)
+            except Exception as e:
+                print(f"Batch failed: {e}")
+
+
+# -------- Main Flow --------
+if __name__ == "__main__":
+    file_path = r"h:\Question and answer\latest\Procedural question with diverse\set2_1.xlsx"
+    output_json_path = r"h:\Question and answer\latest\Procedural question with diverse\set2_1.json"
+    incremental_output_path = r"ds_modules/incremental_responses_part.json"
+    output_excel_path = r"h:\Question and answer\latest\Procedural question with diverse\set2_out.xlsx"
+
+    type_counts = {
+        "Factual": 1,
+        "Procedural": 3,
+        "Conceptual": 2
+    }
+
+    json_path = convert_excel_to_json(file_path, output_json_path)
+    data = read_json_file(json_path)
+    if data:
+        process_batches(data, batch_size=2, type_counts=type_counts, output_path=incremental_output_path)
+        save_responses_to_excel(incremental_output_path, output_excel_path)
+
+
+
+
+
+
+
 I have created a document related to the SOP, in which I prepared 50 questions divided evenly across different types:
 
 Factual: 10
