@@ -1,3 +1,43 @@
+DIVERSE_QUESTION_PROMPT = """
+You are tasked with generating multiple types of diverse questions and answers for each input question-answer pair.
+
+The input will contain a list of original questions and answers.
+
+For each input pair, generate **separate JSON objects for each question type**, based on the required number below.
+
+## Required distribution:
+{type_count_description}
+
+### Response Format:
+Return a **list of JSON objects**, one for each question type per input pair. Each object must be in this exact format:
+
+{{
+  "id": "<unique_id>",
+  "question_type": "<Factual | Procedural | Conceptual | Inferential | Reasoning-Based>",
+  "original_question": "<Original Question>",
+  "original_answer": "<Original Answer>",
+  "diverse_questions": [
+    {{
+      "diverse_question": "<Alternative question>",
+      "diverse_answer": "<Answer>"
+    }},
+    ...
+  ]
+}}
+
+### Additional Requirements:
+- Do **not** combine different question types into one object.
+- Use exactly the number of diverse questions specified per type.
+- Procedural answers should be formatted as step-by-step.
+- Return only valid JSON array. No markdown or explanations.
+- Use double quotes in all JSON strings.
+"""
+
+
+
+
+
+
 import os
 import json
 import base64
