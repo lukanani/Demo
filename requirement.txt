@@ -1,3 +1,49 @@
+I have created a document related to the SOP, in which I prepared 50 questions divided evenly across different types:
+
+Factual: 10
+
+Procedural: 10
+
+Inferential: 10
+
+Conceptual: 10
+
+Reasoning-based: 10
+
+I used an automated retriever strategy pipeline to generate responses for these questions. Overall, the responses look satisfactory to me. However, I have observed a few key points:
+
+When the input question is phrased correctly, the system returns accurate and relevant answers. If the question is not well-formed or deviates from the expected format, the system fails to respond effectively.
+
+For factual questions, the accuracy is high—around 97%, and the answers are precise.
+
+For procedural questions, the system also performs well, with an accuracy of approximately 95%, often providing exact steps and additional clarifications.
+
+For inferential, conceptual, and reasoning-based questions, the responses are generally good. However, some answers tend to be generalized rather than specific, which slightly affects their usefulness.
+
+Let me know if you'd like to present this as an email update or in a report format.
+
+
+
+
+
+
+Is this conversation helpful so far?
+
+
+
+
+
+
+
+Tools
+
+
+
+ChatGPT can make mistakes. Chec
+
+
+
+
 import fitz  # PyMuPDF
 import pandas as pd
 from tqdm import tqdm
