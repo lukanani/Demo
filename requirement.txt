@@ -1,3 +1,177 @@
+import os
+import json
+import pandas as pd
+from concurrent.futures import ThreadPoolExecutor
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+from tenacity import retry, stop_after_attempt, wait_exponential
+from ssrai import SSRAIClient
+
+# --- Setup LLM ---
+ssc_rai_client = SSRAIClient(
+    host="https://api-uat.statestr.com/",
+    eam_consumer_key="YOUR_KEY",
+    eam_consumer_secret="YOUR_SECRET",
+    auth_type="pat",
+    api_version="1.0"
+)
+chat_model_name = "ssgpt-40"
+llm = ssc_rai_client.llm(wrapper="langchain", model_name=chat_model_name)
+
+# --- Prompt Template ---
+DIVERSE_BY_TYPE_PROMPT = """
+You are a question rephrasing assistant. Your task is to generate diverse versions of the input question-answer pair, but only of the **"{question_type}"** type.
+
+### Input:
+Original Question: {original_question}
+Original Answer: {original_answer}
+
+### Instructions:
+- Generate exactly {num_questions} diverse **{question_type}** questions.
+- Ensure the questions are not subsets or minor rewrites.
+- Keep the meaning same as the answer.
+- If it's Procedural, keep step-by-step formatting.
+
+### Output Format:
+{{
+  "id": "{id}",
+  "question_type": "{question_type}",
+  "original_question": "{original_question}",
+  "original_answer": "{original_answer}",
+  "diverse_questions": [
+    {{
+      "diverse_question": "...",
+      "diverse_answer": "..."
+    }},
+    ...
+  ]
+}}
+
+Return only JSON. No markdown, no explanation.
+"""
+
+# --- Excel to JSON ---
+def convert_excel_to_json(file_path: str, output_json_path: str) -> str:
+    try:
+        df = pd.read_excel(file_path, dtype=str).fillna("")
+        required = {"Question Type", "Question", "Answer"}
+        if not required.issubset(df.columns):
+            raise KeyError(f"Missing columns. Required: {required}")
+        json_data = [
+            {
+                "id": str(i + 1),
+                "Question_type": row["Question Type"],
+                "Question": row["Question"],
+                "Answer": row["Answer"]
+            } for i, row in df.iterrows()
+        ]
+        with open(output_json_path, "w", encoding="utf-8") as f:
+            json.dump(json_data, f, indent=4, ensure_ascii=False)
+        print(f"Saved JSON to {output_json_path}")
+        return output_json_path
+    except Exception as e:
+        print(f"Error: {e}")
+        return ""
+
+# --- JSON Utilities ---
+def read_json_file(file_path: str) -> list:
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error reading JSON: {e}")
+        return []
+
+def clear_output(path="responses.json"):
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump([], f)
+
+def append_to_output(batch_responses, path="responses.json"):
+    try:
+        existing_data = []
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                existing_data = json.load(f)
+        existing_data.extend(batch_responses)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(existing_data, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Append error: {e}")
+
+# --- LLM Call per Question Type ---
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1))
+def generate_diverse_questions_per_type(qa, num_questions=3):
+    try:
+        prompt = PromptTemplate(
+            input_variables=["id", "question_type", "original_question", "original_answer", "num_questions"],
+            template=DIVERSE_BY_TYPE_PROMPT
+        )
+        chain = LLMChain(llm=llm, prompt=prompt)
+        response = chain.predict(
+            id=qa["id"],
+            question_type=qa["Question_type"],
+            original_question=qa["Question"],
+            original_answer=qa["Answer"],
+            num_questions=str(num_questions)
+        )
+        return json.loads(response)
+    except Exception as e:
+        print("Parsing error:", e)
+        return {}
+
+# --- Batch Processing ---
+def process_per_question(data, num_questions=3, output_path="responses.json"):
+    clear_output(output_path)
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        futures = [executor.submit(generate_diverse_questions_per_type, qa, num_questions) for qa in data]
+        for future in futures:
+            try:
+                result = future.result()
+                if result:
+                    append_to_output([result], output_path)
+            except Exception as e:
+                print("Error:", e)
+
+# --- Save to Excel ---
+def save_responses_to_excel(output_json_path, excel_file_path="output.xlsx"):
+    with open(output_json_path, "r", encoding="utf-8") as json_file:
+        data = json.load(json_file)
+
+    excel_data = []
+    for item in data:
+        for dq in item["diverse_questions"]:
+            excel_data.append({
+                "ID": item["id"],
+                "Question Type": item["question_type"],
+                "Original Question": item["original_question"],
+                "Original Answer": item["original_answer"],
+                "Diverse Question": dq["diverse_question"],
+                "Diverse Answer": dq["diverse_answer"]
+            })
+
+    df = pd.DataFrame(excel_data)
+    df.to_excel(excel_file_path, index=False, engine="openpyxl")
+    print(f"Saved to Excel: {excel_file_path}")
+
+# --- Main Runner ---
+if __name__ == "__main__":
+    file_path = r"your_input_file.xlsx"
+    output_json = r"converted_data.json"
+    final_json_output = r"responses_by_type.json"
+    excel_output = r"diverse_questions_output.xlsx"
+
+    json_path = convert_excel_to_json(file_path, output_json)
+    data = read_json_file(json_path)
+
+    if data:
+        process_per_question(data, num_questions=3, output_path=final_json_output)
+        save_responses_to_excel(final_json_output, excel_output)
+
+
+
+
+
+
 DIVERSE_QUESTION_PROMPT = """
 You are tasked with generating multiple types of diverse questions and answers for each input question-answer pair.
 
