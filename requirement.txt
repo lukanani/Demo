@@ -1,3 +1,44 @@
+import pandas as pd
+import io
+import logging
+
+logger = logging.getLogger(__name__)
+
+def save_questions_to_blob(questions, filename="original_questions.csv"):
+    """Save valid questions and answers to blob storage safely without corruption."""
+
+    try:
+        # Step 1: Convert to DataFrame
+        df = pd.DataFrame(questions)
+
+        # Step 2: Ensure required columns exist
+        required_columns = ["Question Type", "Question", "Answer"]
+        for col in required_columns:
+            if col not in df.columns:
+                df[col] = ""
+
+        # Step 3: Clean data types – ensure text fields are strings
+        for col in ["Question", "Answer"]:
+            df[col] = df[col].astype(str).replace({'\r': '', '\n': ' '}, regex=True)
+
+        # Step 4: Write to in-memory CSV buffer
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False, encoding='utf-8')
+
+        # Step 5: Upload to blob
+        DataCurationService().upload_file_blob(
+            csv_buffer.getvalue(),
+            filename=filename,
+            blobFilePath="your/blob/path/"  # Replace with actual blob path
+        )
+
+    except Exception as e:
+        logger.error(f"Error saving questions to blob: {e}", exc_info=True)
+
+
+
+
+
 Regarding the zip file, it’s not working. I’m receiving error code E401, along with an exception during task creation. Additionally, the LLM gate failed with error 504, and a Guardian error was thrown.
 
 Also, in the results from the original file, the procedural question type is missing. Interestingly, when I run the same file locally, everything works as expected.
