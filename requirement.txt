@@ -1,3 +1,29 @@
+pip install --proxy=http://proxy.statestr.com:80 \
+  --trusted-host pypi.org \
+  --trusted-host pypi.python.org \
+  --trusted-host files.pythonhosted.org \
+  --no-build-isolation \
+  --upgrade \
+  transformers==4.39.3 \
+  peft==0.10.0 \
+  trl==0.8.6 \
+  torch==2.3.1+cu121 \
+  bitsandbytes==0.43.1 \
+  datasets==2.19.1 \
+  accelerate==0.30.1 \
+  sentencepiece==0.2.0 \
+  protobuf==4.25.3
+
+
+
+
+
+
+
+
+
+
+
 import os
 import json
 import pandas as pd
