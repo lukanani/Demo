@@ -1,3 +1,46 @@
+Hi Susanta,
+
+I have tested both a single file and a zip file.
+
+For single file uploads, it is working fine. I have tested with multiple individual files, and all of them are functioning as expected.
+
+However, for one specific file — the original question and answer.csv — it seems to be corrupted, which is causing an error during processing.
+
+Regarding the zip file, it is failing with error code E401, and there’s an exception while creating the task. The LLM gateway also returned a 504 Gateway Timeout error.
+
+Additionally, in the results from the original file, the Procedural question type is missing. I ran the same file locally, and it worked correctly.
+
+Please let me know if you need any additional details from my side.
+
+Let me know if you’d like this in a shorter format or for email/chat use.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Hi Susanta,
+
+I have tested the functionality with both a single file and a ZIP file.
+
+For single files, it is working fine. I verified with multiple individual files, and all of them processed successfully.
+
+However, for one specific file—the original "question and answer .CSV"—the file appears to be corrupted, which is why the error occurs.
+
+For ZIP files, it is not working. I encountered an error with code E401, along with an exception during task creation. The LLM gateway also failed with a 504 error.
+
+
+
+
+
 Hi Priya,
 Sangeeth discussed something in the scrum call. Could you please guide me on what exactly I need to do?
 
