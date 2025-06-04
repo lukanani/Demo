@@ -1,3 +1,10 @@
+Regarding the zip file, it’s not working. I’m receiving error code E401, along with an exception during task creation. Additionally, the LLM gate failed with error 504, and a Guardian error was thrown.
+
+Also, in the results from the original file, the procedural question type is missing. Interestingly, when I run the same file locally, everything works as expected.
+
+
+
+
 Hi Susanta,
 
 I have tested both a single file and a zip file.
