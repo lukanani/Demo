@@ -1,3 +1,9 @@
+Checking the distribution domain document to verify whether the answers are correct or not
+
+
+
+
+
 pip install --proxy=http://proxy.statestr.com:80 \
   --trusted-host pypi.org \
   --trusted-host pypi.python.org \
