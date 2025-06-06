@@ -1,3 +1,10 @@
+Hi Ritu, good morning,
+
+Could you please help me understand what exactly I should focus on for the injection strategies? I’d like to know your expectations so I can proceed in the right direction.
+
+
+
+
 import pandas as pd
 import io
 import logging
