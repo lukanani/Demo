@@ -1,3 +1,167 @@
+
+import io
+import json
+import pandas as pd
+import logging
+from concurrent.futures import ThreadPoolExecutor
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
+from question_prompts import DIVERSE_QUESTION_PROMPT
+from tenacity import retry, stop_after_attempt, wait_exponential
+from flow import tool
+from common_svc.storage.storage_config import BlobLocation
+from common_svc.storage.blob_client import BlobStorageClient
+from common_svc.logger.log_util import configure_loggers
+from methods.ssrai_service import SSRAIService
+from methods.load_file_blob_service import DataCurationService
+
+# Configure logger
+configure_loggers()
+logger = logging.getLogger(__name__)
+
+def append_to_blob_csv(diverse_output, filename):
+    """Save diverse questions and answers to blob storage"""
+    try:
+        absolute_path = f"{filename}/diverse_questions.csv"
+        blob_location = BlobLocation(container_name="pvt-markets", absolute_path=absolute_path)
+        client = BlobStorageClient()
+
+        if client.check_file_exists(storage_location=blob_location).data:
+            df = client.load_file_as_df(storage_location=blob_location).data
+            temp_df = pd.DataFrame(diverse_output)
+            df = pd.concat([df, temp_df], ignore_index=True)
+        else:
+            df = pd.DataFrame(diverse_output)
+
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False)
+        DataCurationService().upload_file_blob(
+            csv_buffer.getvalue(),
+            filename="diverse_questions.csv",
+            blobFilePath=blob_location
+        )
+    except Exception as e:
+        logger.error("Error saving to blob CSV", exc_info=True)
+        raise e
+
+def clear_output(filename):
+    """Remove the existing diverse_questions.csv file if it exists"""
+    absolute_path = f"{filename}/diverse_questions.csv"
+    blob_location = BlobLocation(container_name="pvt-markets", absolute_path=absolute_path)
+    if BlobStorageClient().check_file_exists(storage_location=blob_location).data:
+        BlobStorageClient().delete_file(storage_location=blob_location)
+
+def split_into_batches(input_list, num_diverse_qa):
+    """Split questions into batches based on their type and batch size."""
+    if not isinstance(input_list, list):
+        raise ValueError("Input must be a list.")
+    if not isinstance(num_diverse_qa, dict):
+        raise ValueError("num_diverse_qa must be a dictionary.")
+
+    batches = {key: [] for key in num_diverse_qa.keys()}
+    for question in input_list:
+        question_type = question.get("Question Type")
+        if question_type in num_diverse_qa:
+            batches[question_type].append(question)
+            if len(batches[question_type]) == num_diverse_qa[question_type]:
+                yield batches[question_type]
+                batches[question_type] = []
+    for question_type, batch in batches.items():
+        if batch:
+            yield batch
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=10))
+def generate_diverse_questions(input_json, num_diverse_qa, llm, prompt):
+    if not isinstance(num_diverse_qa, dict):
+        raise ValueError("num_diverse_qa must be a dictionary.")
+
+    question_type = input_json[0].get("Question Type", "")
+    num_diverse_questions = num_diverse_qa.get(question_type, 1)
+    llm_chain = LLMChain(llm=llm, prompt=prompt)
+    response = llm_chain.predict(
+        input_json=json.dumps(input_json),
+        num_diverse_questions=str(num_diverse_questions)
+    )
+    return json.loads(response)["response"]
+
+@tool
+def diverse_qa_generation(fileData, diverse_qa_batch_size, max_workers, rai_model_name, rai_wrapper_name, diverse_qa_model_kwargs):
+    try:
+        # Dynamic configuration: factual=2, procedural=3, conceptual=2, inferential=2, reasoning-based=2
+        num_diverse_qa = {
+            "Factual": 2,
+            "Procedural": 3,
+            "Conceptual": 2,
+            "Inferential": 2,
+            "Reasoning-Based": 2
+        }
+
+        cli = SSRAIService(model_name=rai_model_name, wrapper_name=rai_wrapper_name, model_kwargs=diverse_qa_model_kwargs)
+        llm = cli.get_llm()
+
+        prompt = PromptTemplate(
+            input_variables=["input_json", "num_diverse_questions"],
+            template=DIVERSE_QUESTION_PROMPT
+        )
+
+        for file in fileData:
+            clear_output(file["fileName"])
+            file["diverseQuestions"] = []
+            futures = []
+
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                for i, batch in enumerate(split_into_batches(file["originalQuestions"], num_diverse_qa), 1):
+                    future = executor.submit(generate_diverse_questions, batch, num_diverse_qa, llm, prompt)
+                    futures.append((future, i, batch[0].get("Question Type")))
+
+                for future, batch_no, qtype in futures:
+                    try:
+                        result = future.result()
+                        diverse_output = []
+                        for response in result:
+                            original_id = response["id"]
+                            original_question = response["original_question"]
+                            original_answer = response["original_answer"]
+                            for diverse in response["diverse_questions"]:
+                                diverse_output.append({
+                                    "ID": original_id,
+                                    "Question Type": qtype,
+                                    "Original Question": original_question,
+                                    "Original Answer": original_answer,
+                                    "Diverse Question": diverse["diverse_question"],
+                                    "Diverse Answer": diverse["diverse_answer"]
+                                })
+                        file["diverseQuestions"] += diverse_output
+                        append_to_blob_csv(diverse_output, file["fileName"])
+                    except Exception as e:
+                        logger.error(f"Batch {batch_no} failed: {e}", exc_info=True)
+                        raise Exception(str(e))
+        return fileData
+    except Exception as e:
+        logger.error(f"Exception in generating diverse QA: {e}", exc_info=True)
+        raise Exception(str(e))
+
+# --- Example Excel Output Format ---
+# +----+-----------------+----------------------+---------------------+-----------------------------+-----------------------------+
+# | ID | Question Type   | Original Question    | Original Answer     | Diverse Question            | Diverse Answer              |
+# +----+-----------------+----------------------+---------------------+-----------------------------+-----------------------------+
+# | 1  | Factual         | What is X?           | It is A.            | When was X established?     | It is A.                    |
+# | 1  | Factual         | What is X?           | It is A.            | What date marks the start?  | It is A.                    |
+# | 2  | Procedural      | How to do Y?         | Step 1, Step 2      | What are the steps to Y?    | Step 1, Step 2              |
+# | 2  | Procedural      | How to do Y?         | Step 1, Step 2      | Describe the Y process      | Step 1, Step 2              |
+# | 2  | Procedural      | How to do Y?         | Step 1, Step 2      | Instructions for Y?         | Step 1, Step 2              |
+# | 3  | Conceptual      | What is concept Z?   | Z is defined as ... | Define the idea of Z        | Z is defined as ...         |
+# | 3  | Conceptual      | What is concept Z?   | Z is defined as ... | Explain what Z means        | Z is defined as ...         |
+# | 4  | Reasoning-Based | Why is M important?  | Because of reasons. | What justifies M?           | Because of reasons.         |
+# | 4  | Reasoning-Based | Why is M important?  | Because of reasons. | How is M logically derived? | Because of reasons.         |
+# +----+-----------------+----------------------+---------------------+-----------------------------+-----------------------------+
+
+
+
+
+
+
+
 import requests
 import json
 import os
