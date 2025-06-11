@@ -1,4 +1,10 @@
+Hi Susanta,
 
+There are still issues in the original QA – the total number of questions generated is less than expected.
+
+Compared to the previous run, the procedural answers are looking better.
+
+We need to generate a higher number of questions to properly evaluate the results. I’m currently waiting for Bhoomika to resolve the issue.
 import io
 import json
 import pandas as pd
