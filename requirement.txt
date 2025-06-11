@@ -1,3 +1,51 @@
+import json
+
+json_str = '''
+{
+    "shipmentId": "8072373880",
+    "plantCode": "CDC",
+    "productTypeMix": "",
+    "palletMix": "",
+    "shipmentDestination": "isklad 180127 - Shooos s.r.o.",
+    "destinationCountry": "US",
+    "vasCode": {
+        "cartonizationType": "",
+        "palletizationType": ""
+    },
+    "shipmentDetails": [
+        {
+            "productCode": "BD7633540",
+            "productQuantity": 10,
+            "productType": "FTW",
+            "productDimension": {
+                "length": 5.3,
+                "width": 6.2,
+                "height": 2.4
+            },
+            "productVolume": 5000.856,
+            "fullCaseDimension": {
+                "length": 36.2,
+                "width": 29.1,
+                "height": 12.1
+            },
+            "fullCaseQuantity": 10,
+            "prePackGroupCode": "",
+            "prePackQuantity": 0
+        }
+    ]
+}
+'''
+
+# Clean and convert to single line
+single_line_json = json.dumps(json.loads(json_str), separators=(',', ':'))
+print(single_line_json)
+
+
+
+
+
+
+
 Hi Susanta,
 
 There are still issues in the original QA – the total number of questions generated is less than expected.
