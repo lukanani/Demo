@@ -1,3 +1,4 @@
+"I didn’t get time to work on this story. Today also, I won’t be able to work on it because I have some work in FTS
 My Observations:
 
 The end-to-end FTS pipeline is now functioning well. Previously, I observed a couple of issues:
