@@ -1,3 +1,17 @@
+My Observations:
+
+The end-to-end FTS pipeline is now functioning well. Previously, I observed a couple of issues:
+
+The total number of original questions generated was lower than expected.
+
+Diverse questions were not being generated accurately.
+
+Both issues have now been resolved.
+
+Today, I plan to test the pipeline using different prompts and configurations. I will share my updated observations by the end of the day (EOD).
+
+
+
 import json
 
 json_str = '''
