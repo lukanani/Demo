@@ -1,3 +1,102 @@
+import requests
+import json
+import os
+import urllib3
+
+# Disable SSL warnings (since we're using verify=False for UAT)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# ---------------- CONFIG ----------------
+BASE_URL = "https://rai-uat.statestr.com/agi/igs"
+APP_ID = "626d3385-754-4284-98c4-837a249526d7"
+API_KEY = "Bearer eyJ0eXAiOiJKV1QiLCJub25jZSI6..."  # Use full correct token here
+FILE_PATH = r"c:\Users\P872643\Box\AI -India Projects\Gen AI 2025\Domain Finetuning\Data\Disseminetation & Reporting Zurich Daily SOP.pdf"
+STRATEGY_FILE = "injection_strategies.json"
+
+headers_json = {
+    "Authorization": API_KEY,
+    "Content-Type": "application/json"
+}
+headers_form = {
+    "Authorization": API_KEY
+}
+
+# ---------------- LOAD STRATEGIES ----------------
+with open(STRATEGY_FILE, "r") as f:
+    strategy_data = json.load(f)
+
+def extract_strategies(data):
+    strategies = []
+    for item in data.get("items", []):
+        for k in ["pdf", "md", "docx", "txt", "csv", "xls", "xlsx", "jpeg", "jpg", "png", "web"]:
+            if k in item:
+                strategies.append({
+                    "name": item.get("name", "Unnamed"),
+                    "type": k,
+                    "strategy": {k: item[k]}
+                })
+                break
+    return strategies
+
+strategies = extract_strategies(strategy_data)
+print(f"🔁 Total strategies found: {len(strategies)}")
+
+# ---------------- LOOP OVER STRATEGIES ----------------
+for i, strat in enumerate(strategies):
+    print(f"\n▶️ [{i+1}/{len(strategies)}] Applying strategy: {strat['name']} ({strat['type']})")
+
+    # Step 1: Create DataGroup
+    create_dg_url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs"
+    dg_payload = {
+        "name": f"DG_{strat['name']}",
+        "description": f"Auto-ingestion for {strat['name']}",
+        "dsType": "FOLDER",
+        "dataClassification": "general",
+        "metadata": {},
+        "ingestionStrategy": strat["strategy"],
+        "config": {}
+    }
+
+    try:
+        dg_response = requests.post(create_dg_url, headers=headers_json, json=dg_payload, verify=False)
+        dg_response.raise_for_status()
+        datagroup_id = dg_response.json()["dsId"]
+        print(f"✅ Created DataGroup: {datagroup_id}")
+    except Exception as e:
+        print(f"❌ Failed to create datagroup for {strat['name']}: {e}")
+        continue
+
+    # Step 2: Upload File
+    upload_url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}/uploadfile"
+    try:
+        with open(FILE_PATH, "rb") as f:
+            files = {"files": (os.path.basename(FILE_PATH), f)}
+            upload_response = requests.post(upload_url, headers=headers_form, files=files, verify=False)
+            upload_response.raise_for_status()
+            document_ids = upload_response.json().get("documentIds", [])
+            print(f"✅ Uploaded document. IDs: {document_ids}")
+    except Exception as e:
+        print(f"❌ File upload failed for {strat['name']}: {e}")
+        continue
+
+    # Step 3: Ingest Document
+    ingest_url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}/ingest"
+    ingest_payload = {"documentIds": document_ids}
+
+    try:
+        ingest_response = requests.post(ingest_url, headers=headers_json, json=ingest_payload, verify=False)
+        ingest_response.raise_for_status()
+        print(f"✅ Ingestion triggered. Response: {ingest_response.json()}")
+    except Exception as e:
+        print(f"❌ Ingestion failed for {strat['name']}: {e}")
+
+
+
+
+
+
+
+
 url = "https://rai-uat.statestr.com/agi/igs/api/v1/apps/626d3385-754-4284-98c4-837a249526d7/dgs"
 
 HEADERS = {
