@@ -1,6 +1,45 @@
 import requests
 import os
 
+BASE_URL = "https://rai-uat.statestr.com/agi/igs"
+APP_ID = "626d3385-75d4-4284-98c4-837a249526d7"
+AUTH_TOKEN = "Bearer <your_token_here>"
+FILE_PATH = "/full/path/to/your/file.pdf"
+
+HEADERS = {
+    "Authorization": AUTH_TOKEN
+}
+
+def upload_file(datagroup_id):
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}/uploadfile"
+    print("Uploading to:", url)
+
+    with open(FILE_PATH, "rb") as file:
+        files = {
+            "files": (os.path.basename(FILE_PATH), file, "application/pdf"),
+            "userMetadata": (None, "0")
+        }
+
+        response = requests.post(url, headers=HEADERS, files=files, verify=False)
+
+    print("Upload response:", response.status_code, response.text)
+    response.raise_for_status()
+
+    file_id = response.json().get("fileId")
+    if not file_id:
+        raise ValueError(f"No fileId returned. Got: {response.json()}")
+    print(f"[✓] File uploaded successfully. fileId: {file_id}")
+    return file_id
+
+
+
+
+
+
+
+import requests
+import os
+
 # === CONFIG ===
 BASE_URL = "https://rai-uat.statestr.com/agi/igs"
 APP_ID = "626d3385-75d4-4284-98c4-837a249526d7"  # Double check this matches Swagger exactly
