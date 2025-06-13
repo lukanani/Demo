@@ -1,3 +1,29 @@
+import requests
+
+url = "https://rai-uat.statestr.com/agi/igs/api/v1/apps/62603385-754-4284-98c4-837a249526d7/dgs"
+headers = {
+    "Authorization": "Bearer your_token_here",
+    "Content-Type": "application/json"
+}
+payload = {
+    "name": "Data",
+    "description": "Data",
+    "dsType": "FOLDER",
+    "dataClassification": "general",
+    "metadata": {},
+    "ingestionStrategy": {},
+    "config": {}
+}
+
+response = requests.post(url, headers=headers, json=payload)
+print("Status Code:", response.status_code)
+print("Response Body:", response.json())
+
+
+
+
+
+
 "I didn’t get time to work on this story. Today also, I won’t be able to work on it because I have some work in FTS
 My Observations:
 
