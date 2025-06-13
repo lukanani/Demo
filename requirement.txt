@@ -1,3 +1,82 @@
+import requests
+import os
+
+# CONFIG
+BASE_URL = "https://rai-uat.statestr.com/agi/igs"
+APP_ID = "626d3385-75d4-4284-98c4-837a249526d7"
+AUTH_TOKEN = "Bearer <YOUR_TOKEN_HERE>"  # Replace with your actual token
+FILE_PATH = "/path/to/your/file.pdf"     # Replace with full local path to PDF
+
+HEADERS_JSON = {
+    "Content-Type": "application/json",
+    "Authorization": AUTH_TOKEN
+}
+
+HEADERS_MULTIPART = {
+    "Authorization": AUTH_TOKEN
+}
+
+# Step 1: Create Data Group
+def create_data_group():
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs"
+    payload = {
+        "name": "Data",
+        "description": "Data",
+        "dsType": "FOLDER",
+        "dataClassification": "general",
+        "metadata": {},
+        "ingestionStrategy": {},
+        "config": {}
+    }
+    response = requests.post(url, headers=HEADERS_JSON, json=payload, verify=False)
+    response.raise_for_status()
+    datagroup_id = response.json()["dsId"]
+    print(f"[✓] Data Group Created: {datagroup_id}")
+    return datagroup_id
+
+# Step 2: Upload File
+def upload_file(datagroup_id):
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}/uploadfile"
+    with open(FILE_PATH, "rb") as file:
+        files = {
+            "files": (os.path.basename(FILE_PATH), file, "application/pdf"),
+            "userMetadata": (None, "0")
+        }
+        response = requests.post(url, headers=HEADERS_MULTIPART, files=files, verify=False)
+    response.raise_for_status()
+    file_id = response.json()["fileId"]
+    print(f"[✓] File Uploaded: {file_id}")
+    return file_id
+
+# Step 3: Ingest Document
+def ingest_document(datagroup_id, file_id):
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}/ingest"
+    payload = {
+        "documentIds": [file_id]
+    }
+    response = requests.post(url, headers=HEADERS_JSON, json=payload, verify=False)
+    response.raise_for_status()
+    print(f"[✓] Ingestion Triggered: {response.json()['message']}")
+    return response.json()
+
+# Driver
+if __name__ == "__main__":
+    try:
+        print("=== Starting Document Ingestion Pipeline ===")
+        datagroup_id = create_data_group()
+        file_id = upload_file(datagroup_id)
+        result = ingest_document(datagroup_id, file_id)
+        print("=== Pipeline Completed Successfully ===")
+        print(result)
+    except Exception as e:
+        print("[✗] Pipeline Failed:", str(e))
+
+
+
+
+
+
+
 
 Request URL
 
