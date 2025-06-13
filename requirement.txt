@@ -1,3 +1,86 @@
+import requests
+import os
+
+# === CONFIG ===
+BASE_URL = "https://rai-uat.statestr.com/agi/igs"
+APP_ID = "626d3385-75d4-4284-98c4-837a249526d7"  # Double check this matches Swagger exactly
+AUTH_TOKEN = "Bearer <VALID_TOKEN>"
+FILE_PATH = "/path/to/your/file.pdf"
+
+HEADERS_JSON = {
+    "Content-Type": "application/json",
+    "Authorization": AUTH_TOKEN
+}
+
+HEADERS_MULTIPART = {
+    "Authorization": AUTH_TOKEN
+}
+
+# === STEP 1: Create Data Group ===
+def create_data_group():
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs"
+    payload = {
+        "name": "Data2",
+        "description": "Data2",
+        "dsType": "FOLDER",
+        "dataClassification": "general",
+        "metadata": {},
+        "ingestionStrategy": {},
+        "config": {}
+    }
+    response = requests.post(url, headers=HEADERS_JSON, json=payload, verify=False)
+    response.raise_for_status()
+    data = response.json()
+    print("[✔] Full Response:", data)
+    datagroup_id = data.get("dsId", "").strip().replace('"', '')
+    if not datagroup_id:
+        raise ValueError("Invalid datagroup_id returned.")
+    return datagroup_id
+
+# === STEP 2: Upload File ===
+def upload_file(datagroup_id):
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}/uploadfile"
+    with open(FILE_PATH, "rb") as file:
+        files = {
+            "files": (os.path.basename(FILE_PATH), file, "application/pdf"),
+            "userMetadata": (None, "0")
+        }
+        response = requests.post(url, headers=HEADERS_MULTIPART, files=files, verify=False)
+    response.raise_for_status()
+    file_id = response.json().get("fileId")
+    if not file_id:
+        raise ValueError("Invalid fileId returned.")
+    print(f"[✔] File Uploaded: {file_id}")
+    return file_id
+
+# === STEP 3: Ingest Document ===
+def ingest_document(datagroup_id, file_id):
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}/ingest"
+    payload = {
+        "documentIds": [file_id]
+    }
+    response = requests.post(url, headers=HEADERS_JSON, json=payload, verify=False)
+    response.raise_for_status()
+    print(f"[✔] Ingestion Triggered: {response.json()['message']}")
+    return response.json()
+
+# === DRIVER ===
+if __name__ == "__main__":
+    try:
+        print("=== Starting Document Ingestion Pipeline ===")
+        datagroup_id = create_data_group()
+        file_id = upload_file(datagroup_id)
+        result = ingest_document(datagroup_id, file_id)
+        print("=== ✅ Pipeline Completed Successfully ===")
+        print(result)
+    except Exception as e:
+        print("[✗] Pipeline Failed:", str(e))
+
+
+
+
+
+
 Starting Document Ingestion Pipeline ===
 
 Full response ('name': 'Data2', 'description': 'Data2', 'dsType': 'FOLDER', 'dataClassification': 'general', 'metadata": (), ingestionStrategy': {}, 'config': (), 'status': '', 'createdBy': 'p872643', 'modifiedBy': 'p872643', 'createdTs': '2025-06-13T10:32:51Z', 'modifiedTs': '2025-06-13T10:32:51Z', 'dsId': '1a12e0f0-f236-4668-b4db-1391ae42de11", 'kbId': 'e954df9f-791a-4680-88c9-0ae8e01affle', 'slug': None)
