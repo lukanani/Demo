@@ -1,3 +1,21 @@
+Starting Document Ingestion Pipeline ===
+
+Full response ('name': 'Data2', 'description': 'Data2', 'dsType': 'FOLDER', 'dataClassification': 'general', 'metadata": (), ingestionStrategy': {}, 'config': (), 'status': '', 'createdBy': 'p872643', 'modifiedBy': 'p872643', 'createdTs': '2025-06-13T10:32:51Z', 'modifiedTs': '2025-06-13T10:32:51Z', 'dsId': '1a12e0f0-f236-4668-b4db-1391ae42de11", 'kbId': 'e954df9f-791a-4680-88c9-0ae8e01affle', 'slug': None)
+
+[X] Pipeline Failed: 404 Client Error: Not Found for url: https://rai-uat.statestr.com/agi/igs/api/v1/apps/62643385-7544-4284-98c4-837-2495207/-
+
+In 2. Col 1
+
+100% Windows
+
+IN
+
+
+
+
+
+
+
 import requests
 import os
 
