@@ -1,3 +1,62 @@
+url = "https://rai-uat.statestr.com/agi/igs/api/v1/apps/626d3385-754-4284-98c4-837a249526d7/dgs"
+
+HEADERS = {
+
+"Content-Type": "application/json",
+
+"Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJub25jZSI6InBKWDNVN@p4ej1YVEZhR09xVzZ4SjVoeWRJMFH@Mk9yeWtwdGZxMWZhd@@iLCJhb
+
+}
+
+payload = {
+
+"name": "Data",
+
+"description": "Data",
+
+"dsType": "FOLDER",
+
+"dataClassification": "general",
+
+"metadata": {},
+
+"ingestionStrategy": {},
+
+"config": {}
+
+}
+
+response = requests.post(url, headers=HEADERS, json=payload, verify=False)
+
+print("Status Code:", response.status_code)
+
+print("Response Body:", response.json())
+
+0.85
+
+c:\venv\Lib\site-packages\urllib3\connectionpool.py:1099: InsecureRequestWarning: Unverified HTTPS request is being made to
+
+warnings.warn(
+
+Status Code: 200
+
+Spaces: 4 CRLF Cell 20 of 21
+
+Response Body: {'name': 'Data', 'description': 'Data', 'dsType': 'FOLDodataClassification': 'general', 'metadata": {}
+
+ENG
+
+14:23
+
+9]
+
+20
+
+
+
+
+
+
 import requests
 
 url = "https://rai-uat.statestr.com/agi/igs/api/v1/apps/62603385-754-4284-98c4-837a249526d7/dgs"
