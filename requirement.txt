@@ -1,3 +1,26 @@
+json_resp = response.json()
+file_ids = []
+
+# If the API returned a list of dicts (one per file)
+if isinstance(json_resp, list):
+    file_ids = [item["fileId"] for item in json_resp if "fileId" in item]
+# If it's a dict with fileIds array
+elif isinstance(json_resp, dict):
+    if "fileId" in json_resp:
+        file_ids = [json_resp["fileId"]]
+    elif "fileIds" in json_resp:
+        file_ids = json_resp["fileIds"]
+
+if not file_ids:
+    raise ValueError(f"No fileId(s) returned. Got: {json_resp}")
+
+print(f"[✓] Uploaded {len(file_ids)} file(s): {file_ids}")
+
+
+
+
+
+
 import requests
 import os
 import json
