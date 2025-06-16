@@ -1,3 +1,39 @@
+
+import requests
+import os
+
+BASE_URL = "https://rai-uat.statestr.com/agi/igs"
+APP_ID = "626d3385-7504-4284-98c4-837a249526d7"
+DATAGROUP_ID = "a380e809-60bf-4e65-ad8b-7fe8a3059c4f"
+FILE_PATH = "C:/Users/P872643/Downloads/NPS Monthly Fee Accre GD SOP V301.pdf"
+
+AUTH_TOKEN = "Bearer <PASTE_VALID_MFA_TOKEN_HERE>"
+
+def upload_file():
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{DATAGROUP_ID}/uploadfile"
+    print(f"Uploading to: {url}")
+    
+    with open(FILE_PATH, "rb") as file:
+        files = {
+            "files": (os.path.basename(FILE_PATH), file, "application/pdf"),
+            "userMetadata": (None, "0")
+        }
+        response = requests.post(url, headers={"Authorization": AUTH_TOKEN}, files=files, verify=False)
+    
+    print("Status:", response.status_code)
+    print("Response:", response.text)
+    
+    response.raise_for_status()
+    file_id = response.json().get("fileId")
+    print("✅ File Uploaded, fileId:", file_id)
+    return file_id
+
+# Run it
+upload_file()
+
+
+
+
 import requests
 import os
 
