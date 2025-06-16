@@ -1,3 +1,103 @@
+import os
+import requests
+import json
+from urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
+
+# === Configuration ===
+BASE_URL = "https://rai-uat.statestr.com/agi/igs"
+APP_ID = "626d3385-7504-4284-98c4-837a249526d7"  # Replace with your actual App ID
+AUTH_TOKEN = "Bearer <PASTE_YOUR_VALID_MFA_TOKEN_HERE>"
+
+HEADERS_JSON = {
+    "Content-Type": "application/json",
+    "Authorization": AUTH_TOKEN
+}
+
+HEADERS_MULTIPART = {
+    "Authorization": AUTH_TOKEN
+}
+
+FILE_PATHS = [  # You can add more files here
+    r"C:\Users\P872643\Downloads\example1.pdf",
+    r"C:\Users\P872643\Downloads\example2.pdf"
+]
+
+# === Step 1: Create Data Group ===
+def create_data_group(name="AutoDataGroup"):
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs"
+    payload = {
+        "name": name,
+        "description": "Created via Python script",
+        "dsType": "FOLDER",
+        "dataClassification": "general",
+        "metadata": {},
+        "ingestionStrategy": {},
+        "config": {}
+    }
+    response = requests.post(url, headers=HEADERS_JSON, json=payload, verify=False)
+    response.raise_for_status()
+    datagroup_id = response.json().get("dsId")
+    print(f"[✔] Data group created: {datagroup_id}")
+    return datagroup_id
+
+# === Step 2: Upload Files ===
+def upload_files(datagroup_id, file_paths):
+    file_ids = []
+    for file_path in file_paths:
+        url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}/uploadfile"
+        with open(file_path, "rb") as f:
+            files = {
+                "files": (os.path.basename(file_path), f, "application/pdf"),
+                "userMetadata": (None, "0")
+            }
+            print(f"Uploading to: {url}")
+            response = requests.post(url, headers=HEADERS_MULTIPART, files=files, verify=False)
+            print("Upload Response:", response.status_code, response.text)
+            response.raise_for_status()
+            file_id = response.json().get("fileId")
+            if file_id:
+                file_ids.append(file_id)
+    return file_ids
+
+# === Step 3: List Uploaded Files ===
+def list_uploaded_files(datagroup_id):
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}/entities"
+    response = requests.get(url, headers=HEADERS_JSON, verify=False)
+    response.raise_for_status()
+    return response.json()
+
+# === Step 4: Ingest Selected Files ===
+def ingest_documents(datagroup_id, file_ids):
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}/ingest"
+    payload = {
+        "documentIds": file_ids
+    }
+    response = requests.post(url, headers=HEADERS_JSON, json=payload, verify=False)
+    print("Ingest Response:", response.status_code, response.text)
+    response.raise_for_status()
+    print(f"[✔] Ingestion triggered successfully.")
+
+# === Main Pipeline ===
+def run_pipeline():
+    print("=== Starting Full Upload + Ingest Pipeline ===")
+    datagroup_id = create_data_group()
+    uploaded_file_ids = upload_files(datagroup_id, FILE_PATHS)
+    
+    all_files = list_uploaded_files(datagroup_id)
+    to_ingest = [f["fileId"] for f in all_files if f.get("ingestionStatus") == "Uploaded"]
+
+    if not to_ingest:
+        print("[ℹ] No un-ingested files found.")
+    else:
+        ingest_documents(datagroup_id, to_ingest)
+
+# Run it
+run_pipeline()
+
+
+
+
 json_resp = response.json()
 file_ids = []
 
