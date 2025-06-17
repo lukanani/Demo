@@ -1,3 +1,85 @@
+import requests
+import json
+import urllib3
+
+# === Suppress SSL Warnings ===
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# === CONFIGURATION ===
+BASE_URL = "https://your-api-host.com/agi/igs/api/v1"
+APP_ID = "your-app-id"                   # Replace with actual App ID
+ACCESS_TOKEN = "your-access-token"       # Replace with your real token
+STRATEGY_FILE = "strategies.json"        # Your local strategy list
+
+# === HEADERS ===
+HEADERS = {
+    "Authorization": f"Bearer {ACCESS_TOKEN}",
+    "Content-Type": "application/json"
+}
+
+
+# === STEP 1: CREATE DATAGROUP ===
+def create_datagroup():
+    url = f"{BASE_URL}/apps/{APP_ID}/dgs"
+    payload = {
+        "name": "AutoCreated-Datagroup",
+        "description": "Created programmatically",
+        "dsType": "BLOB",
+        "dataClassification": "general",
+        "metadata": {},
+        "config": {}
+    }
+    res = requests.post(url, headers=HEADERS, json=payload, verify=False)
+    res.raise_for_status()
+    datagroup_id = res.json().get("id")
+    print("✅ Created Datagroup:", datagroup_id)
+    return datagroup_id
+
+
+# === STEP 2: LOAD FIRST STRATEGY ===
+def load_first_strategy(filepath):
+    with open(filepath, "r") as f:
+        strategies = json.load(f)["items"]
+        md_raw = strategies[0]["md"]
+        md_parsed = json.loads(md_raw)
+        return strategies[0]["name"], strategies[0].get("description", ""), md_parsed
+
+
+# === STEP 3: ASSIGN STRATEGY TO DATAGROUP ===
+def update_datagroup(datagroup_id, strategy_name, strategy_desc, strategy_config):
+    url = f"{BASE_URL}/apps/{APP_ID}/dgs/{datagroup_id}?action=modify"
+    payload = {
+        "name": strategy_name,
+        "description": strategy_desc,
+        "dsType": "BLOB",
+        "dataClassification": "general",
+        "metadata": {},
+        "ingestionStrategy": [
+            {
+                "strategyType": "RAI_PIPELINE",
+                "config": strategy_config
+            }
+        ],
+        "config": {}
+    }
+    res = requests.post(url, headers=HEADERS, json=payload, verify=False)
+    print("✅ Strategy assigned. Status:", res.status_code)
+    try:
+        print("Response:", json.dumps(res.json(), indent=2))
+    except:
+        print("Raw Response:", res.text)
+
+
+# === MAIN RUN ===
+if __name__ == "__main__":
+    datagroup_id = create_datagroup()
+    strategy_name, strategy_desc, strategy_config = load_first_strategy(STRATEGY_FILE)
+    update_datagroup(datagroup_id, strategy_name, strategy_desc, strategy_config)
+
+
+
+
+
 
 import requests
 import json
