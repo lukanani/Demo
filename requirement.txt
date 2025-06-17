@@ -1,8 +1,221 @@
+import os
+import json
+import requests
+import pandas as pd
+import copy
+
+# === CONFIGURATION ===
+BASE_URL = "https://rai-uat.statestr.com/agi/igs"
+MGMT_BASE_URL = "https://rai-uat.statestr.com"
+CONV_BASE_URL = "https://rai-uat.statestr.com"
+APP_ID = "62603385-7504-4284-98c4-837a249526d7"
+AUTH_TOKEN = "Bearer <YOUR_VALID_TOKEN_HERE>"
+
+HEADERS_JSON = {
+    "Authorization": AUTH_TOKEN,
+    "Content-Type": "application/json"
+}
+HEADERS_FORM = {
+    "Authorization": AUTH_TOKEN
+}
+
+STRATEGY_PATH = "injection_strategies.json"
+FILE_PATHS = [
+    r"c:\\Users\\P872643\\Downloads\\rebal.pdf",
+    r"c:\\Users\\P872643\\Downloads\\Centric Wealth Quarterly Distribution SOP (Old CUP tool).pdf"
+]
+
+# === STEP 1: CREATE DATA GROUP ===
+def create_data_group():
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs"
+    payload = {
+        "name": "Data2",
+        "description": "Created via Python script",
+        "dsType": "FOLDER",
+        "dataClassification": "general",
+        "metadata": {},
+        "ingestionStrategy": {},
+        "config": {}
+    }
+    response = requests.post(url, headers=HEADERS_JSON, json=payload, verify=False)
+    response.raise_for_status()
+    return response.json().get("dsId"), payload["name"]
+
+# === STEP 2: LOAD STRATEGY ===
+def load_first_strategy(filepath):
+    with open(filepath, "r") as f:
+        data = json.load(f)
+        strategy = data["items"][0]
+        md_parsed = strategy["md"]
+        if isinstance(md_parsed, str):
+            md_parsed = json.loads(md_parsed)
+        return strategy["name"], strategy.get("description", ""), md_parsed
+
+# === STEP 3: UPDATE INGESTION STRATEGY ===
+def update_ingestion_strategy(datagroup_id, strategy, ingestion_name):
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}?action=modify"
+    payload = {
+        "name": ingestion_name,
+        "description": "Updated ingestion strategy",
+        "dsType": "FOLDER",
+        "dataClassification": "general",
+        "metadata": {},
+        "ingestionStrategy": strategy,
+        "config": {}
+    }
+    response = requests.post(url, headers=HEADERS_JSON, json=payload, verify=False)
+    response.raise_for_status()
+
+# === STEP 4: UPLOAD FILES ===
+def upload_files(datagroup_id, file_paths):
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}/uploadfile"
+    files = []
+    for path in file_paths:
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"File not found: {path}")
+        filename = os.path.basename(path)
+        mime_type = "application/pdf"
+        files.append(("files", (filename, open(path, "rb"), mime_type)))
+
+    user_metadata = {"uploadedBy": "p872643"}
+    data = {"userMetadata": json.dumps(user_metadata)}
+    response = requests.post(url, headers=HEADERS_FORM, files=files, data=data, verify=False)
+    response.raise_for_status()
+    for f in files:
+        f[1].close()
+    json_resp = response.json()
+    file_ids = []
+    if isinstance(json_resp, list):
+        file_ids = [item["fileId"] for item in json_resp if "fileId" in item]
+    elif isinstance(json_resp, dict):
+        if "fileId" in json_resp:
+            file_ids = [json_resp["fileId"]]
+        elif "fileIds" in json_resp:
+            file_ids = json_resp["fileIds"]
+    return file_ids
+
+# === STEP 5: INGEST FILES ===
+def ingest_documents(datagroup_id, file_ids):
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}/ingest"
+    payload = {"documentIds": file_ids}
+    response = requests.post(url, headers=HEADERS_JSON, json=payload, verify=False)
+    response.raise_for_status()
+
+# === STEP 6: LIST FILES ===
+def list_uploaded_files(datagroup_id):
+    url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}/entities"
+    response = requests.get(url, headers=HEADERS_JSON, verify=False)
+    response.raise_for_status()
+    return response.json()
+
+# === STEP 7: EVALUATE RETRIEVER STRATEGIES ===
+def evaluate_retriever_strategies(strategy_file, excel_path, ingestion_strategy_name):
+    with open(strategy_file, "r") as f:
+        retriever_strategies = json.load(f)
+
+    df_questions = pd.read_excel(excel_path)
+    questions = df_questions["Question"].dropna().tolist()
+    all_results = []
+
+    for strategy in retriever_strategies["items"]:
+        strategy_name = strategy["name"]
+        strategy_config = json.dumps(strategy, indent=2)
+
+        update_url = f"{MGMT_BASE_URL}/agi/mgmt/api/v1/apps/{APP_ID}"
+        conv_url = f"{CONV_BASE_URL}/agi/cvs/api/v1/apps/{APP_ID}/conversations"
+
+        payload = copy.deepcopy({
+            "retrieverConfig": strategy,
+            "metadata": {},
+            "category": "",
+            "description": "",
+            "prompt": ".",
+            "title": strategy_name,
+            "icon": "",
+            "vectorStore": {},
+            "raiclient": {
+                "eamClientId": "",
+                "raiClientId": "",
+                "eamClientSecret": ""
+            },
+            "entitlements": {},
+            "embedding": {
+                "model": "",
+                "params": {}
+            },
+            "generative": {
+                "model": "",
+                "params": {},
+                "n": 1,
+                "temperature": 0.7
+            },
+            "multimodel": {
+                "model": "",
+                "params": {}
+            }
+        })
+
+        response = requests.post(update_url, headers=HEADERS_JSON, json=payload, verify=False)
+        print(f"Updated retriever config: {strategy_name} => {response.status_code}")
+
+        for question in questions:
+            try:
+                conv_payload = {"userQuery": question}
+                conv_response = requests.post(conv_url, headers=HEADERS_JSON, json=conv_payload, verify=False)
+                conv_response.raise_for_status()
+                response_json = conv_response.json()
+                bot_response = response_json.get("botResponse", "")
+                full_response = json.dumps(response_json)
+            except Exception as e:
+                bot_response = f"Error: {str(e)}"
+                full_response = bot_response
+
+            all_results.append({
+                "Ingestion Strategy": ingestion_strategy_name,
+                "Retriever Strategy": strategy_name,
+                "Retriever Config": strategy_config,
+                "Question": question,
+                "Bot Response": bot_response,
+                "Full Raw Response": full_response
+            })
+
+    df_output = pd.DataFrame(all_results, columns=[
+        "Ingestion Strategy", "Retriever Strategy", "Retriever Config", "Question", "Bot Response", "Full Raw Response"
+    ])
+    df_output.to_excel("Naive_retriever_output_with_strategy.xlsx", index=False)
+    print("Saved results to Naive_retriever_output_with_strategy.xlsx")
+
+# === MAIN EXECUTION ===
+if __name__ == "__main__":
+    try:
+        print("\n=== Starting Full Upload & Ingest Pipeline ===")
+        datagroup_id, ingestion_name = create_data_group()
+        file_ids = upload_files(datagroup_id, FILE_PATHS)
+        print(f"Uploaded files: {file_ids}")
+        ingest_documents(datagroup_id, file_ids)
+        print("Ingestion triggered successfully.")
+        _, _, strategy = load_first_strategy(STRATEGY_PATH)
+        update_ingestion_strategy(datagroup_id, strategy, ingestion_name)
+        print("Ingestion strategy updated successfully.")
+        uploaded_files = list_uploaded_files(datagroup_id)
+        print("Uploaded Files:", uploaded_files)
+
+        # === Execute Retriever Strategy Evaluation ===
+        evaluate_retriever_strategies(
+            strategy_file=r"\\mfgdcu82\p872643\Desktop\Rsults\retriever_strategies_NaiveRetriever.json",
+            excel_path=r"\\mfgdcu02\p872643\Desktop\ssgenai_testing\01. Asset&Cash Transfer Check 50P V7.8 questions.xlsx",
+            ingestion_strategy_name=ingestion_name
+        )
+    except Exception as e:
+        print("Pipeline failed:", str(e))
+
+
+
 def update_ingestion_strategy(datagroup_id, strategy):
     url = f"{BASE_URL}/api/v1/apps/{APP_ID}/dgs/{datagroup_id}?action=modify"
 
     payload = {
-        "name": "Data2",  # Same as datagroup creation or updated value
+        "name": "Data2",  # Same as in datagroup creation or updated value
         "description": "Updated ingestion strategy",
         "dsType": "FOLDER",
         "dataClassification": "general",
