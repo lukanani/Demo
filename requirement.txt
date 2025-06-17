@@ -1,3 +1,59 @@
+
+import requests
+import json
+
+# === CONFIGURATION ===
+BASE_URL = "https://your-api-host.com/agi/igs/api/v1"
+APP_ID = "your-app-id"                    # Replace with your actual App ID
+DATAGROUP_ID = "your-datagroup-id"        # Replace with your actual Datagroup ID
+ACCESS_TOKEN = "your-access-token"        # Replace with your Bearer token
+STRATEGY_JSON_PATH = "strategies.json"    # Path to your local JSON file with all 14 strategies
+
+# === HEADERS ===
+HEADERS = {
+    "Authorization": f"Bearer {ACCESS_TOKEN}",
+    "Content-Type": "application/json"
+}
+
+# === LOAD STRATEGIES FROM JSON FILE ===
+with open(STRATEGY_JSON_PATH, "r") as f:
+    data = json.load(f)
+
+# If file structure is {"items": [ ... ]}
+strategies = data["items"]
+first_strategy_md = json.loads(strategies[0]["md"])  # Load the `md` JSON string from the first item
+
+# === PREPARE API PAYLOAD ===
+payload = {
+    "name": strategies[0]["name"],  # Using name from strategy JSON
+    "description": strategies[0].get("description", "Updated ingestion strategy"),
+    "dsType": "BLOB",
+    "dataClassification": "general",
+    "metadata": {},
+    "ingestionStrategy": [
+        {
+            "strategyType": "RAI_PIPELINE",
+            "config": first_strategy_md
+        }
+    ],
+    "config": {}
+}
+
+# === SEND UPDATE REQUEST ===
+url = f"{BASE_URL}/apps/{APP_ID}/dgs/{DATAGROUP_ID}?action=modify"
+response = requests.post(url, headers=HEADERS, json=payload)
+
+# === PRINT RESULT ===
+print("Status Code:", response.status_code)
+try:
+    print("Response:", json.dumps(response.json(), indent=2))
+except Exception:
+    print("Raw Response:", response.text)
+
+
+
+
+
 import os
 import json
 import requests
