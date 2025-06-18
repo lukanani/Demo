@@ -1,3 +1,49 @@
+from fts_mgmt.db.models import TaskModel  # your ORM model
+from fts_mgmt.utils.objects import TaskStatusEnum
+from common_svc.db.base import DBConnection
+
+class TaskMgmtDao:
+    def fetch_and_lock_pending_task(self):
+        session = DBConnection().start_session()
+        try:
+            task = (
+                session.query(TaskModel)
+                .filter(TaskModel.status == TaskStatusEnum.NOT_STARTED)
+                .order_by(TaskModel.modified_ts.asc())
+                .with_for_update(skip_locked=True)
+                .first()
+            )
+            if task:
+                task.status = TaskStatusEnum.IN_PROGRESS
+                session.commit()
+            return task
+        except Exception as e:
+            session.rollback()
+            raise Exception(f"Failed to fetch and lock task: {e}")
+        finally:
+            session.close()
+
+    def update_task(self, task_id, status, output):
+        session = DBConnection().start_session()
+        try:
+            session.query(TaskModel).filter(TaskModel.id == task_id).update({
+                TaskModel.status: status,
+                TaskModel.output: output
+            })
+            session.commit()
+        except Exception as e:
+            session.rollback()
+            raise Exception(f"Failed to update task: {e}")
+        finally:
+            session.close()
+
+
+
+
+
+
+
+
 import os
 import time
 import json
