@@ -5,6 +5,132 @@ import logging
 from promptflow.client import PFClient, load_flow
 
 from common_svc.logger.log_util import configure_loggers
+from common_svc.storage.blob_client import setup_blob_resource
+from common_svc.config.config_store import BlobConfig
+from fts_mgmt.dao.task_mgmt_dao import TaskMgmtDao
+from fts_mgmt.dao.data_curation_mgmt_dao import DataCurationServiceDAO
+from fts_mgmt.dao.dataset_mgmt_dao import DataMgmtServiceDao
+from fts_mgmt.utils.util import flatten_config, get_strategy_storage_path
+from fts_mgmt.utils.objects import TaskStatusEnum, DCSConfig, RuntimeConfigModel
+
+# Configure logging
+configure_loggers()
+logger = logging.getLogger("DaemonExecutor")
+
+# Constants
+PROMPTFLOW_ROOT_PATH = os.getenv("WORKFLOW_PATH", "/promptflow")
+
+def merge_runtime_with_dynamic(static_cfg: dict, dynamic_cfg: dict, runtime_cfg: dict):
+    # Merge runtime config into dynamic config
+    merged_dynamic = {**dynamic_cfg, **(runtime_cfg or {})}
+    return {
+        "static": static_cfg,
+        "dynamic": RuntimeConfigModel(**merged_dynamic).dict()
+    }
+
+def process_promptflow_task(task):
+    try:
+        logger.info(f"Processing task: {task.id}")
+
+        # DAO objects
+        task_dao = TaskMgmtDao()
+        dcs_dao = DataCurationServiceDAO()
+        ds_dao = DataMgmtServiceDao()
+
+        dataset = ds_dao.get_dataset_info(task.config['dataset_id'])
+        dcs = dcs_dao.get_data_curation_strategy_by_id(task.config['data_curation_strategy_id'])
+
+        if not dataset or not dcs:
+            raise Exception("Dataset or Data Curation Strategy not found")
+
+        strategy_path = get_strategy_storage_path(strategy_id=dcs.id, strategy_name=dcs.name)
+        absolute_blob_path = setup_blob_resource().blob_location(
+            container_name=BlobConfig().BLOB_DOC_CONTAINER,
+            absolute_path=strategy_path
+        )
+
+        # Download strategy locally
+        local_dir = os.path.join(PROMPTFLOW_ROOT_PATH, str(task.id))
+        if not os.path.exists(local_dir):
+            setup_blob_resource().copy_blob_dir_to_local(
+                storage_location=absolute_blob_path,
+                target_local_path=local_dir
+            )
+
+        # Merge config
+        static_cfg = dcs.config.get("static", {})
+        dynamic_cfg = dcs.config.get("dynamic", {})
+        runtime_cfg = task.config.get("data_curation_strategy_dynamic_config", {})
+
+        if not runtime_cfg.get("blob_path"):
+            runtime_cfg["blob_path"] = dataset.storage_path
+
+        merged_config = merge_runtime_with_dynamic(static_cfg, dynamic_cfg, runtime_cfg)
+        flat_inputs = flatten_config(merged_config)
+
+        # Run Promptflow
+        pf_client = PFClient()
+        flow = load_flow(source=local_dir)
+        flow_result = flow.invoke(inputs=flat_inputs)
+
+        if not flow_result.output:
+            raise Exception("Promptflow returned no output.")
+
+        logger.info(f"Flow result: {flow_result.output}")
+        output_blob_path = flat_inputs.get('dynamic_blob_path')
+
+        task_dao.update_task(
+            task_id=task.id,
+            status=TaskStatusEnum.SUCCESS,
+            output={"outputDirectory": output_blob_path, "results": flow_result.output}
+        )
+
+    except Exception as e:
+        error_message = f"Promptflow failed for task {task.id}: {str(e)}"
+        logger.error(error_message, exc_info=True)
+        task_dao.update_task(
+            task_id=task.id,
+            status=TaskStatusEnum.FAILURE,
+            output={"error": error_message}
+        )
+
+def daemon_loop():
+    logger.info("Daemon executor started...")
+
+    task_dao = TaskMgmtDao()
+
+    while True:
+        try:
+            task = task_dao.get_pending_task()
+            if task:
+                process_promptflow_task(task)
+            else:
+                logger.info("No pending tasks. Sleeping 60s...")
+                time.sleep(60)
+        except Exception as e:
+            logger.error(f"Daemon cycle error: {e}", exc_info=True)
+            time.sleep(60)
+
+# Entry Point
+if __name__ == "__main__":
+    daemon_loop()
+
+
+
+
+
+
+
+
+
+
+import os
+import time
+import json
+import logging
+from promptflow.client import PFClient, load_flow
+
+from common_svc.logger.log_util import configure_loggers
 from common_svc.config.config_store import BlobConfig
 from common_svc.storage.blob_client import setup_blob_resource
 from common_svc.db.base import DBConnection
