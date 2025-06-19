@@ -1,3 +1,35 @@
+def fetch_and_lock_pending_task(self):
+    """Fetch the next NOT_STARTED task and mark it IN_PROGRESS"""
+    task = None
+    try:
+        with DBSession() as session:
+            task = (
+                session.query(Task)
+                .filter(Task.status == TaskStatusEnum.NOT_STARTED)
+                .order_by(Task.modified_ts.asc())
+                .first()
+            )
+
+            if not task:
+                logger.info("No NOT_STARTED tasks available.")
+                return None
+
+            logger.info(f"Fetched task ID={task.id}, marking as IN_PROGRESS")
+            task.status = TaskStatusEnum.IN_PROGRESS
+            task.modified_ts = get_current_datetime()
+            session.commit()
+    except Exception as e:
+        logger.error(f"Error while fetching and locking task: {e}", exc_info=True)
+        raise Exception("Failed to fetch and lock task.")
+
+    return task
+
+
+
+
+
+
+
 from fts_commons.db.model import Task
 from fts_commons.utils.util import get_current_datetime
 from fts_mgmt.utils.objects import TaskStatusEnum
