@@ -1,3 +1,8 @@
+Yesterday, I resolved some dependency issues that were blocking progress. In addition, I’ve written part of the daemon processing code and will continue building on it today.
+
+
+
+
 from fts_mgmt.db.models import TaskModel  # your ORM model
 from fts_mgmt.utils.objects import TaskStatusEnum
 from common_svc.db.base import DBConnection
