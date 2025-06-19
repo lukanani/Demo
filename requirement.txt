@@ -1,3 +1,37 @@
+def fetch_and_lock_pending_task(self):
+    """Fetches the next NOT_STARTED task and marks it IN_PROGRESS"""
+    try:
+        with DBSession() as db:
+            tasks = db.session.query(Task).all()
+            logger.info(f"Total tasks in DB: {len(tasks)}")
+
+            for t in tasks:
+                logger.info(f"TASK: id={t.id}, status={t.status}")
+
+            task = (
+                db.session.query(Task)
+                .filter(Task.status == "NOT_STARTED")
+                .order_by(Task.modified_ts.asc())
+                .first()
+            )
+            if task:
+                task.status = "IN_PROGRESS"
+                task.modified_ts = get_current_datetime()
+                db.session.commit()
+                logger.info(f"Locked and fetched task ID: {task.id}")
+            else:
+                logger.info("No tasks found with status NOT_STARTED")
+            return task
+    except Exception as e:
+        logger.error(f"Error locking task: {e}", exc_info=True)
+        raise Exception("Failed to fetch and lock pending task.")
+
+
+
+
+
+
+
 SELECT id, status FROM fts_tasks WHERE status = 'NOT_STARTED';
 
 
