@@ -1,3 +1,50 @@
+from fts_commons.db.model import Task
+from fts_commons.utils.util import get_current_datetime
+from fts_mgmt.utils.objects import TaskStatusEnum
+from common_svc.db.base import DBSession
+import logging
+
+logger = logging.getLogger(__name__)
+
+class TaskMgmtDao:
+    
+    def fetch_and_lock_pending_task(self):
+        """Fetch the next NOT_STARTED task and mark it IN_PROGRESS"""
+        task = None
+        session = DBSession().start_session()
+        try:
+            task = (
+                session.query(Task)
+                .filter(Task.status == TaskStatusEnum.NOT_STARTED)
+                .order_by(Task.modified_ts.asc())
+                .first()
+            )
+
+            if not task:
+                logger.warning("Couldn't find any NOT_STARTED tasks for daemon processing.")
+                return None
+
+            logger.info(f"Fetched task: ID={task.id}, updating status to IN_PROGRESS")
+
+            task.status = TaskStatusEnum.IN_PROGRESS
+            task.modified_ts = get_current_datetime()
+            session.commit()
+
+        except Exception as e:
+            session.rollback()
+            logger.error(f"Exception while locking task: {e}", exc_info=True)
+            raise Exception("Failed to fetch and lock task.")
+
+        finally:
+            session.close()
+
+        return task
+
+
+
+
+
+
 
 def fetch_and_lock_pending_task(self):
     """Fetches the next NOT_STARTED task and marks it IN_PROGRESS"""
