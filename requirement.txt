@@ -1,3 +1,11 @@
+
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../fts_mgmt/src')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../fts_commons/src')))
+
+
 Yesterday, I resolved some dependency issues that were blocking progress. In addition, I’ve written part of the daemon processing code and will continue building on it today.
 
 
