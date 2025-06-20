@@ -1,3 +1,78 @@
+def process_promptflow_task(task):
+    try:
+        logger.info(f"Processing task: {task.id}")
+        logger.info(f"TASK CONFIG: {task.config}")
+
+        task_dao = TaskMgmtDao()
+        dcs_dao = DataCurationServiceDAO()
+        ds_dao = DataMgmtServiceDao()
+
+        # Defensive check
+        config = task.config or {}
+
+        if 'dataset_id' not in config or 'data_curation_strategy_id' not in config:
+            raise KeyError("Missing required keys in task.config. Required: 'dataset_id', 'data_curation_strategy_id'")
+
+        dataset = ds_dao.get_dataset_info(config['dataset_id'])
+        dcs = dcs_dao.get_data_curation_strategy_by_id(config['data_curation_strategy_id'])
+
+        if not dataset or not dcs:
+            raise Exception("Dataset or Data Curation Strategy not found")
+
+        strategy_path = get_strategy_storage_path(dcs.id, dcs.name)
+        blob_location = setup_blob_resource().blob_location(
+            container_name=BlobConfig().BLOB_DOC_CONTAINER,
+            absolute_path=strategy_path
+        )
+
+        local_path = os.path.join(PROMPTFLOW_ROOT_PATH, str(task.id))
+        if not os.path.exists(local_path):
+            setup_blob_resource().copy_blob_dir_to_local(blob_location, local_path)
+
+        static_cfg = dcs.config.get("static", {})
+        dynamic_cfg = dcs.config.get("dynamic", {})
+        runtime_cfg = config.get("data_curation_strategy_dynamic_config", {})
+
+        if not runtime_cfg.get("blob_path"):
+            runtime_cfg["blob_path"] = dataset.storage_path
+
+        merged_config = merge_runtime_with_dynamic(static_cfg, dynamic_cfg, runtime_cfg)
+        flat_inputs = flatten_config(merged_config)
+
+        pf = PFClient()
+        flow = load_flow(local_path)
+        result = flow.invoke(inputs=flat_inputs)
+
+        if not result.output:
+            raise Exception("Promptflow returned no output.")
+
+        logger.info(f"Flow result: {result.output}")
+        output_path = flat_inputs.get("dynamic_blob_path", "")
+
+        task_dao.update_task(
+            task_id=task.id,
+            status="SUCCESS",
+            output={"outputDirectory": output_path, "results": result.output}
+        )
+
+    except Exception as e:
+        logger.error(f"Promptflow failed for task {task.id}: {str(e)}", exc_info=True)
+        task_dao.update_task(
+            task_id=task.id,
+            status="FAILURE",
+            output={"error": str(e)}
+        )
+
+
+
+
+
+
+
+
+
+
+
 
 from psycopg2.sql import SQL, Literal
 import psycopg2
