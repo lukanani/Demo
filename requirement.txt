@@ -1,3 +1,65 @@
+def process_promptflow_task(task):
+    try:
+        logger.info(f"Processing task: {task.id}")
+        task_dao = TaskMgmtDao()
+        dcs_dao = DataCurationServiceDAO()
+        ds_dao = DataMgmtServiceDao()
+
+        dataset = ds_dao.get_dataset_info(task.config['dataset_id'])
+        dcs = dcs_dao.get_data_curation_strategy_by_id(task.config['data_curation_strategy_id'])
+
+        if not dataset or not dcs:
+            raise Exception("Dataset or Data Curation Strategy not found")
+
+        # Use BlobService class to get the blob_location
+        blob_service = BlobService()
+        blob_location = blob_service.blob_location(
+            container_name=BlobConfig().BLOB_DOC_CONTAINER,
+            absolute_path=get_strategy_storage_path(dcs.id, dcs.name)
+        )
+
+        local_path = os.path.join(PROMPTFLOW_ROOT_PATH, str(task.id))
+        if not os.path.exists(local_path):
+            setup_blob_resource().copy_blob_dir_to_local(blob_location, local_path)
+
+        static_cfg = dcs.config.get("static", {})
+        dynamic_cfg = dcs.config.get("dynamic", {})
+        runtime_cfg = task.config.get("data_curation_strategy_dynamic_config", {})
+
+        if not runtime_cfg.get("blob_path"):
+            runtime_cfg["blob_path"] = dataset.storage_path
+
+        merged_config = merge_runtime_with_dynamic(static_cfg, dynamic_cfg, runtime_cfg)
+        flat_inputs = flatten_config(merged_config)
+
+        pf = PFClient()
+        flow = load_flow(local_path)
+        result = flow.invoke(inputs=flat_inputs)
+
+        if not result.output:
+            raise Exception("Promptflow returned no output.")
+
+        logger.info(f"Flow result: {result.output}")
+        output_path = flat_inputs.get("dynamic_blob_path", "")
+
+        task_dao.update_task(
+            task_id=task.id,
+            status="SUCCESS",
+            output={"outputDirectory": output_path, "results": result.output}
+        )
+
+    except Exception as e:
+        logger.error(f"Promptflow failed for task {task.id}: {str(e)}", exc_info=True)
+        task_dao.update_task(
+            task_id=task.id,
+            status="FAILURE",
+            output={"error": str(e)}
+        )
+
+
+
+
+
 I have implemented several injection strategies in an automated manner using different retrieval methods, and the generated results appear accurate and satisfactory."
 
 
