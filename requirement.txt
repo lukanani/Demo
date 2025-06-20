@@ -1,3 +1,8 @@
+SELECT * FROM data_curation_strategies WHERE id = 'd5410ad8-e361-4129-8bee-cc47cef7acbd';
+
+
+
+
 def process_promptflow_task(task):
     try:
         logger.info(f"Processing task: {task.id}")
