@@ -1,3 +1,98 @@
+import os
+
+# ================== Format Strings ==================
+standard_format = '[%(asctime)s] [%(threadName)s:%(thread)d] [task_id:%(name)s] [%(filename)s:%(lineno)d]'
+simple_format = '[%(levelname)s] [%(asctime)s] [PID: %(process)d TID: %(thread)d] [%(filename)s:%(lineno)d] %(message)s'
+
+# ================== Environment Variables ==================
+LOG_PATH = os.getenv('LOG_PATH', '../logs')
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+LOG_COUNT = int(os.getenv('LOG_COUNT', 10))
+LOG_FILE = os.getenv('LOG_FILE_NAME', 'fts.log')
+AZURE_SERVICES_LOG_FILE = os.getenv('AZURE_SERVICES_LOG_FILE', 'azure-services.log')
+
+# ================== Ensure Log Directory Exists ==================
+try:
+    os.makedirs(LOG_PATH, exist_ok=True)
+except Exception as e:
+    print(f"[LOGGING] Failed to create log directory at {LOG_PATH}: {e}")
+
+# ================== Full Path for Azure Log ==================
+azure_services_logfile_path = os.path.join(LOG_PATH, AZURE_SERVICES_LOG_FILE)
+
+# ================== Logging Configuration ==================
+LOG_CONF = {
+    "version": 1,
+    "disable_existing_loggers": False,
+
+    "formatters": {
+        "simple": {
+            "format": simple_format,
+        },
+        "standard": {
+            "format": standard_format,
+        },
+    },
+
+    "handlers": {
+        "stdout": {
+            "class": "logging.StreamHandler",
+            "level": LOG_LEVEL,
+            "formatter": "simple",
+            "stream": "ext://sys.stdout",
+        },
+        "stdout_error_handler": {
+            "class": "logging.StreamHandler",
+            "level": "ERROR",
+            "formatter": "simple",
+            "stream": "ext://sys.stdout",
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": LOG_LEVEL,
+            "formatter": "simple",
+            "filename": os.path.join(LOG_PATH, LOG_FILE),
+            "maxBytes": 1024 * 1024 * 5,  # 5MB
+            "backupCount": LOG_COUNT,
+            "encoding": "utf8",
+        },
+        "azure_services_logfile": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "INFO",
+            "formatter": "simple",
+            "filename": azure_services_logfile_path,
+            "maxBytes": 1024 * 1024 * 5,
+            "backupCount": 5,
+            "encoding": "utf-8",
+        },
+    },
+
+    "loggers": {
+        "": {
+            "handlers": ["file", "stdout"],
+            "level": LOG_LEVEL,
+            "propagate": True,
+        },
+        "azure": {
+            "handlers": ["stdout_error_handler", "azure_services_logfile"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        "azure.eventhub._pyamqp.management_link": {
+            "handlers": ["stdout_error_handler", "azure_services_logfile"],
+            "level": "INFO",
+            "propagate": True,
+        },
+        "sqlalchemy": {
+            "handlers": ["stdout_error_handler", "azure_services_logfile"],
+            "level": "INFO",
+            "propagate": True,
+        },
+    }
+}
+
+
+
 LOG_CONF = {
     "version": 1,
     "disable_existing_loggers": False,
