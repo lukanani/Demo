@@ -1,3 +1,10 @@
+UPDATE fts_tasks
+SET status = '"Not Started"'
+WHERE id = '1370fb9a-1021-48d7-9676-dab2a4d684d7';
+
+
+
+
 SELECT * FROM data_curation_strategies WHERE id = '73e4de99-5de6-4a8f-91b3-52dd7a2482eb';
 
 import os
