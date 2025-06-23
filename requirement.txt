@@ -1,4 +1,4 @@
-
+SELECT * FROM data_curation_strategies WHERE id = '73e4de99-5de6-4a8f-91b3-52dd7a2482eb';
 
 import os
 
