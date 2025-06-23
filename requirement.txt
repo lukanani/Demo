@@ -1,3 +1,74 @@
+LOG_CONF = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {
+            "format": simple_format
+        },
+        "standard": {
+            "format": standard_format
+        }
+    },
+    "handlers": {
+        "stdout": {
+            "class": "logging.StreamHandler",
+            "level": LOG_LEVEL,
+            "formatter": "simple",
+            "stream": "ext://sys.stdout"
+        },
+        "stdout_error_handler": {
+            "class": "logging.StreamHandler",
+            "level": "ERROR",
+            "formatter": "simple",
+            "stream": "ext://sys.stdout"
+        },
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": LOG_LEVEL,
+            "formatter": "simple",
+            "filename": os.path.join(LOG_PATH, LOG_FILE),
+            "maxBytes": 1024 * 1024 * 5,
+            "backupCount": int(LOG_COUNT),
+            "encoding": "utf8"
+        },
+        "azure_services_logfile": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": "INFO",
+            "formatter": "simple",
+            "filename": azure_services_logfile_path,
+            "maxBytes": 1024 * 1024 * 5,
+            "backupCount": 5,
+            "encoding": "utf-8"
+        }
+    },
+    "loggers": {
+        "": {  # root logger
+            "handlers": ["file", "stdout"],
+            "level": LOG_LEVEL,
+            "propagate": True
+        },
+        "azure": {
+            "handlers": ["stdout_error_handler", "azure_services_logfile"],
+            "level": "INFO",
+            "propagate": True
+        },
+        "azure.eventhub._pyamqp.management_link": {
+            "handlers": ["stdout_error_handler", "azure_services_logfile"],
+            "level": "INFO",
+            "propagate": True
+        },
+        "sqlalchemy": {
+            "handlers": ["stdout_error_handler", "azure_services_logfile"],
+            "level": "INFO",
+            "propagate": True
+        }
+    }
+}
+
+
+
+
+
 UPDATE fts_tasks
 SET status = '"Not Started"'
 WHERE id = '1370fb9a-1021-48d7-9676-dab2a4d684d7';
