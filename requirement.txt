@@ -1,3 +1,9 @@
+LOG_PATH = os.getenv('LOG_PATH', os.path.join(os.getcwd(), "logs"))
+
+
+
+
+
 import os
 
 # ================== Format Strings ==================
