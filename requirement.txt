@@ -1,3 +1,134 @@
+import os
+import time
+import logging
+import warnings
+
+from promptflow.client import PFClient, load_flow
+
+from common_svc.logger.log_util import configure_loggers
+from common_svc.storage.blob_client import setup_blob_resource
+from common_svc.storage.blob_service import BlobService
+from common_svc.config.config_store import BlobConfig
+from fts_mgmt.dao.task_mgmt_dao import TaskMgmtDao
+from fts_mgmt.dao.data_curation_mgmt_dao import DataCurationServiceDAO
+from fts_mgmt.dao.dataset_mgmt_dao import DataMgmtServiceDao
+from fts_mgmt.utils.util import flatten_config, get_strategy_storage_path
+from fts_mgmt.utils.objects import TaskStatusEnum, RuntimeConfigModel
+
+# Suppress warnings
+warnings.filterwarnings("ignore")
+
+# Configure logging
+configure_loggers()
+logger = logging.getLogger("PromptflowDaemon")
+
+# Set environment
+os.environ.setdefault("ENV", "PREDEV")
+
+# Ensure promptflow root directory exists
+PROMPTFLOW_ROOT_PATH = os.path.abspath("./promptflows")
+os.makedirs(PROMPTFLOW_ROOT_PATH, exist_ok=True)
+
+def merge_runtime_with_dynamic(static_cfg: dict, dynamic_cfg: dict, runtime_cfg: dict):
+    merged_dynamic = {**(dynamic_cfg or {}), **(runtime_cfg or {})}
+    return {
+        "static": static_cfg,
+        "dynamic": RuntimeConfigModel(**merged_dynamic).dict()
+    }
+
+def process_promptflow_task(task):
+    task_dao = TaskMgmtDao()
+    dcs_dao = DataCurationServiceDAO()
+    ds_dao = DataMgmtServiceDao()
+
+    try:
+        logger.info(f"Processing task: {task.id}")
+        logger.info(f"TASK CONFIG: {task.config}")
+
+        config = task.config or {}
+
+        if 'dataset_id' not in config or 'data_curation_strategy_id' not in config:
+            raise KeyError("Missing required keys in task.config. Required: 'dataset_id', 'data_curation_strategy_id'")
+
+        dataset = ds_dao.get_dataset_info(config['dataset_id'])
+        dcs = dcs_dao.get_data_curation_strategy_by_id(config['data_curation_strategy_id'])
+
+        if not dataset or not dcs:
+            raise Exception("Dataset or Data Curation Strategy not found")
+
+        blob_service = BlobService()
+        blob_location = blob_service.blob_location(
+            container_name=BlobConfig().BLOB_DOC_CONTAINER,
+            absolute_path=get_strategy_storage_path(dcs.id, dcs.name)
+        )
+
+        local_path = os.path.join(PROMPTFLOW_ROOT_PATH, str(task.id))
+        if not os.path.exists(local_path):
+            setup_blob_resource().copy_blob_dir_to_local(blob_location, local_path)
+
+        static_cfg = dcs.config.get("static", {})
+        dynamic_cfg = dcs.config.get("dynamic", {})
+        runtime_cfg = config.get("data_curation_strategy_dynamic_config", {})
+
+        if not runtime_cfg.get("blob_path"):
+            runtime_cfg["blob_path"] = dataset.storage_path
+
+        merged_config = merge_runtime_with_dynamic(static_cfg, dynamic_cfg, runtime_cfg)
+        flat_inputs = flatten_config(merged_config)
+
+        pf = PFClient()
+        flow = load_flow(local_path)
+        result = flow.invoke(inputs=flat_inputs)
+
+        if not result.output:
+            raise Exception("Promptflow returned no output.")
+
+        logger.info(f"Flow result: {result.output}")
+        output_path = flat_inputs.get("dynamic_blob_path", "")
+
+        task_dao.update_task(
+            task_id=task.id,
+            status="SUCCESS",
+            output={"outputDirectory": output_path, "results": result.output}
+        )
+
+    except Exception as e:
+        logger.error(f"Promptflow failed for task {task.id}: {str(e)}", exc_info=True)
+        task_dao.update_task(
+            task_id=task.id,
+            status="FAILURE",
+            output={"error": str(e)}
+        )
+
+def daemon_loop():
+    logger.info("Promptflow Daemon Started")
+    task_dao = TaskMgmtDao()
+
+    while True:
+        try:
+            task = task_dao.fetch_and_lock_pending_task()
+            if task:
+                process_promptflow_task(task)
+            else:
+                logger.info("No pending tasks. Sleeping for 60 seconds.")
+                time.sleep(60)
+        except Exception as e:
+            logger.error(f"Daemon loop error: {e}", exc_info=True)
+            time.sleep(60)
+
+if __name__ == "__main__":
+    daemon_loop()
+
+
+
+
+
+
+
+
+
+
+
 def process_promptflow_task(task):
     try:
         logger.info(f"Processing task: {task.id}")
