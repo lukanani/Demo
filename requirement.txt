@@ -1,3 +1,77 @@
+import pandas as pd
+from llama_cpp import Llama
+import time
+
+# Define paths
+model_path = r"C:\Projects\Model_Inferencing\finetuned_merged_model_withadapter2103.gguf"
+input_csv = r"C:\Users\e680927\Documents\Model_Inferncing\T8\T8_questions.csv"
+output_csv = r"C:\Users\e680927\Documents\Model_Inferncing\T8\T8_generated_answers.csv"
+
+# Load model once
+llm = Llama(model_path=model_path, n_ctx=2048)
+
+# Load input CSV
+df = pd.read_csv(input_csv)
+
+questions = []
+question_types = []
+generated_answers = []
+inference_times = []
+
+batch_start = time.time()
+
+for idx, row in df.iterrows():
+    question = str(row.get("Question", "")).strip()
+    question_type = str(row.get("Question Type", "")).strip()
+
+    if not question:
+        continue
+
+    prompt = f"Q: {question}\nA:"
+
+    try:
+        start = time.time()
+        output = llm(prompt=prompt, max_tokens=100)
+        end = time.time()
+
+        response = output['choices'][0]['text'].strip()
+        inference_time = round(end - start, 2)
+
+    except Exception as e:
+        response = "ERROR"
+        inference_time = 0.0
+        print(f"Error on row {idx}: {e}")
+
+    questions.append(question)
+    question_types.append(question_type)
+    generated_answers.append(response)
+    inference_times.append(inference_time)
+
+    if idx % 10 == 0:
+        print(f"Processed row {idx + 1}/{len(df)}")
+
+batch_end = time.time()
+total_time = round(batch_end - batch_start, 2)
+
+# Save to output CSV
+pd.DataFrame({
+    "Question Type": question_types,
+    "Question": questions,
+    "Generated Answer": generated_answers,
+    "Inference Time (s)": inference_times
+}).to_csv(output_csv, index=False)
+
+print("✅ All questions processed and saved.")
+print(f"⏱ Total processing time: {total_time}s")
+
+
+
+
+
+
+
+
+
 LOG_PATH = os.getenv('LOG_PATH', os.path.join(os.getcwd(), "logs"))
 
 
