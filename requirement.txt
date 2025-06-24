@@ -1,3 +1,136 @@
+import os
+import time
+import logging
+import warnings
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from promptflow.client import PFClient, load_flow
+from common_svc.logger.log_util import configure_loggers
+from common_svc.storage.blob_client import setup_blob_resource
+from common_svc.storage.blob_service import BlobService
+from common_svc.config.config_store import BlobConfig
+from fts_mgmt.dao.task_mgmt_dao import TaskMgmtDao
+from fts_mgmt.dao.data_curation_mgmt_dao import DataCurationServiceDAO
+from fts_mgmt.dao.dataset_mgmt_dao import DataMgmtServiceDao
+from fts_mgmt.utils.util import flatten_config, get_strategy_storage_path
+from fts_mgmt.utils.objects import RuntimeConfigModel
+
+warnings.filterwarnings("ignore")
+configure_loggers()
+logger = logging.getLogger("PromptflowDaemon")
+
+PROMPTFLOW_ROOT_PATH = os.path.abspath("./promptflows")
+os.makedirs(PROMPTFLOW_ROOT_PATH, exist_ok=True)
+
+
+def merge_runtime_with_dynamic(static_cfg: dict, dynamic_cfg: dict, runtime_cfg: dict):
+    merged_dynamic = {**(dynamic_cfg or {}), **(runtime_cfg or {})}
+    return {
+        "static": static_cfg,
+        "dynamic": RuntimeConfigModel(**merged_dynamic).dict()
+    }
+
+
+def process_promptflow_task(task):
+    task_dao = TaskMgmtDao()
+    dcs_dao = DataCurationServiceDAO()
+    ds_dao = DataMgmtServiceDao()
+
+    try:
+        logger.info(f"Processing task: {task.id}")
+        config = task.config or {}
+
+        if 'datasetId' not in config or 'dataCurationStrategyId' not in config:
+            raise KeyError("Missing keys: 'datasetId', 'dataCurationStrategyId'")
+
+        dataset = ds_dao.get_dataset_info(config['datasetId'])
+        dcs = dcs_dao.get_data_curation_strategy_by_id(config['dataCurationStrategyId'])
+
+        if not dataset or not dcs:
+            raise Exception("Dataset or Data Curation Strategy not found")
+
+        blob_service = BlobService()
+        blob_location = blob_service.blob_location(
+            container_name=BlobConfig().BLOB_DOC_CONTAINER,
+            absolute_path=get_strategy_storage_path(dcs.id, dcs.name)
+        )
+
+        local_path = os.path.join(PROMPTFLOW_ROOT_PATH, str(task.id))
+        if not os.path.exists(local_path):
+            setup_blob_resource().copy_blob_dir_to_local(blob_location, local_path)
+
+        static_cfg = dcs.config.get("static", {})
+        dynamic_cfg = dcs.config.get("dynamic", {})
+        runtime_cfg = config.get("data_curation_strategy_dynamic_config", {})
+
+        if not runtime_cfg.get("blob_path"):
+            runtime_cfg["blob_path"] = dataset.storage_path
+
+        merged_config = merge_runtime_with_dynamic(static_cfg, dynamic_cfg, runtime_cfg)
+        flat_inputs = flatten_config(merged_config)
+
+        pf = PFClient()
+        flow = load_flow(local_path)
+        result = flow.invoke(inputs=flat_inputs)
+
+        if not result.output:
+            raise Exception("Promptflow returned no output.")
+
+        logger.info(f"Flow result: {result.output}")
+        task_dao.update_task(
+            task_id=task.id,
+            status="Success",
+            output={"outputDirectory": flat_inputs.get("dynamic_blob_path", ""), "results": result.output}
+        )
+
+    except Exception as e:
+        logger.error(f"Promptflow failed for task {task.id}: {str(e)}", exc_info=True)
+        task_dao.update_task(
+            task_id=task.id,
+            status="Failure",
+            output={"error": str(e)}
+        )
+
+
+def daemon_loop_parallel(max_workers=4):
+    logger.info("Promptflow Parallel Daemon Started")
+    task_dao = TaskMgmtDao()
+
+    while True:
+        try:
+            tasks = []
+            for _ in range(max_workers):
+                task = task_dao.fetch_and_lock_pending_task()
+                if task:
+                    tasks.append(task)
+
+            if tasks:
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    futures = {executor.submit(process_promptflow_task, task): task for task in tasks}
+                    for future in as_completed(futures):
+                        try:
+                            future.result()
+                        except Exception as e:
+                            logger.error(f"Error processing task in parallel: {e}", exc_info=True)
+            else:
+                logger.info("No pending tasks. Sleeping for 60 seconds.")
+                time.sleep(60)
+
+        except Exception as e:
+            logger.error(f"Daemon loop error: {e}", exc_info=True)
+            time.sleep(60)
+
+
+if __name__ == "__main__":
+    daemon_loop_parallel(max_workers=4)
+
+
+
+
+
+
+
+
 Daemon processing has been successfully completed.
 🔍 Currently testing the pipeline end-to-end to ensure responses are accurate and aligned with expected outputs.
 📌 Will update with validation results shortly.
