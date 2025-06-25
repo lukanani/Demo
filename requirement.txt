@@ -1,3 +1,48 @@
+from sqlalchemy import literal, update
+from sqlalchemy.dialects.postgresql import JSONB
+
+def fetch_and_lock_pending_task(self):
+    """Fetches the next FAILURE task and marks it IN_PROGRESS using direct UPDATE query"""
+
+    try:
+        with DBSession() as db:
+            # Step 1: Get the first matching task
+            task = (
+                db.session.query(Task)
+                .filter(Task.status == literal('"Failure"').cast(JSONB))
+                .order_by(Task.modified_ts.asc())
+                .first()
+            )
+
+            if task:
+                logger.info(f"Locked and fetched task ID: {task.id}")
+
+                # Step 2: Update status and modified_ts using direct UPDATE
+                stmt = (
+                    update(Task)
+                    .where(Task.id == task.id)
+                    .values(
+                        status=literal('"In Progress"').cast(JSONB),
+                        modified_ts=get_current_datetime()
+                    )
+                )
+                db.session.execute(stmt)
+                db.session.commit()
+
+                return task
+            else:
+                logger.info("No tasks found with status 'Failure'")
+                return None
+
+    except Exception as e:
+        logger.error(f"Error locking task: {e}", exc_info=True)
+        raise Exception("Failed to fetch and lock pending task.")
+
+
+
+
+
+
 
 Daemon Task Processor Updated
 Implemented a parallel execution strategy for the Promptflow daemon using ThreadPoolExecutor, enabling multiple tasks to be processed simultaneously for better throughput.
