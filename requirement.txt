@@ -1,3 +1,27 @@
+def process_promptflow_task(task):
+    task_dao = TaskMgmtDao()
+
+    try:
+        logger.info(f"Processing task: {task.id}")
+        config = task.config or {}
+
+        if 'datasetId' not in config or 'dataCurationStrategyId' not in config:
+            raise KeyError("Missing keys: 'datasetId', 'dataCurationStrategyId'")
+
+        with DBSession() as db:
+            dataset = db.query(DatasetModel).filter(DatasetModel.id == config['datasetId']).first()
+            dcs = db.query(DataCurationStrategyModel).filter(DataCurationStrategyModel.id == config['dataCurationStrategyId']).first()
+
+        if not dataset or not dcs:
+            raise Exception("Dataset or Data Curation Strategy not found")
+
+        # Rest of the logic remains the same ...
+
+
+
+
+
+
 -- Fix double-escaped string
 UPDATE fts_tasks
 SET status = '"In Progress"'::jsonb
