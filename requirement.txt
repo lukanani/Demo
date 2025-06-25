@@ -1,3 +1,10 @@
+
+Daemon Task Processor Updated
+Implemented a parallel execution strategy for the Promptflow daemon using ThreadPoolExecutor, enabling multiple tasks to be processed simultaneously for better throughput.
+
+
+
+
 import os
 import time
 import logging
