@@ -1,3 +1,16 @@
+-- Fix double-escaped string
+UPDATE fts_tasks
+SET status = '"In Progress"'::jsonb
+WHERE status::text LIKE '%\\"In Progress\\"%';
+
+-- Flatten object status {"error": "In Progress"}
+UPDATE fts_tasks
+SET status = to_jsonb(status->>'error')
+WHERE status ? 'error';
+
+
+
+
 -- Fix entries where status is stored like "\"In Progress\""
 UPDATE fts_tasks
 SET status = '"In Progress"'::jsonb
