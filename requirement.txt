@@ -1,3 +1,16 @@
+-- Fix entries where status is stored like "\"In Progress\""
+UPDATE fts_tasks
+SET status = '"In Progress"'::jsonb
+WHERE status = '\"In Progress\"'::jsonb;
+
+-- Fix object-based status fields like {"error": "In Progress"}
+UPDATE fts_tasks
+SET status = to_jsonb(status->>'error')
+WHERE status ? 'error';
+
+
+
+
 from sqlalchemy import literal, update
 from sqlalchemy.dialects.postgresql import JSONB
 
