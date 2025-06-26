@@ -1,3 +1,8 @@
+I generated the results using a few ingestion strategies. The next step is to validate the results for the remaining strategies using the automated pipeline.
+
+
+
+
 def process_promptflow_task(task):
     task_dao = TaskMgmtDao()
 
