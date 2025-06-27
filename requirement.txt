@@ -1,3 +1,13 @@
+with DBSession() as db:
+    task_record = db.session.query(Task).filter(Task.id == task.id).first()
+    if task_record:
+        task_record.status = "Success"
+        task_record.output = {
+            "outputDirectory": "output_path",
+            "results": result.output
+        }
+
+
 
 I’m encountering an issue – the file ingestion is failing. Could you please help me check what might be causing it?
 
