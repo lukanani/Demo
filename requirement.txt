@@ -1,4 +1,14 @@
 with DBSession() as db:
+        task_record = db.session.query(Task).filter(Task.id == task.id).one_or_none()
+        if task_record:
+            task_record.status = "Failure"
+            task_record.output = {
+                "error": str(e)
+            }
+
+
+
+with DBSession() as db:
     task_record = db.session.query(Task).filter(Task.id == task.id).first()
     if task_record:
         task_record.status = "Success"
